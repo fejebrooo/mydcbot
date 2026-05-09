@@ -212,8 +212,8 @@ let rrRegionMessageId = null;
 //
 
 const GENDER_ROLES = {
-    "1501488390925844540": { roleId: "1502769746867781642", name: "female", emojiName: "emoji_6"  },
-    "1501488340875214908": { roleId: "1502769692190707882", name: "male",   emojiName: "emoji_4"  },
+    "1501488390925844540": { roleId: "1502769692190707882", name: "male",   emojiName: "emoji_6"  },
+    "1501488340875214908": { roleId: "1502769746867781642", name: "female", emojiName: "emoji_4"  },
 };
 
 const AGE_ROLES = {
@@ -225,10 +225,10 @@ const AGE_ROLES = {
 const REGION_ROLES = {
     "1501488286735007814": { roleId: "1502770523179057292", name: "south america", emojiName: "emoji_1"    },
     "1501488303256375338": { roleId: "1502770341808701450", name: "north america", emojiName: "emoji_2"    },
-    "1502357245810184444": { roleId: "1502770017970946089", name: "australia",     emojiName: "ggbunnyfgg" },
+    "1501488322046857286": { roleId: "1502770017970946089", name: "australia",     emojiName: "emoji_3"    },
     "1502341368767582259": { roleId: "1502769963545526523", name: "africa",        emojiName: "ggbunnyfg"  },
     "1502341151078744214": { roleId: "1502769868116725840", name: "asia",          emojiName: "ggbunnyfg"  },
-    "1502778200974168244": { roleId: "1502769820418969761", name: "europe",        emojiName: "ggbunnyfg"  },
+    "1502341755561971762": { roleId: "1502769820418969761", name: "europe",        emojiName: "DNSheartbow" },
 };
 
 /* Helper: returns the correct Discord emoji string, fetching from API if not cached */
@@ -252,8 +252,8 @@ async function postReactionRoleEmbeds(channel, guild) {
         .setTitle("♡ gender ♡")
         .setDescription(
             `*ₓ˚. ୭ pick ur gender below ˚₊‧꩜ .*\n\n` +
-            `${await emojiStr(guild, "1501488390925844540")}  ·  <@&1502769746867781642>\n` +
-            `${await emojiStr(guild, "1501488340875214908")}  ·  <@&1502769692190707882>`
+            `${await emojiStr(guild, "1501488340875214908")}  ·  <@&1502769746867781642>\n` +
+            `${await emojiStr(guild, "1501488390925844540")}  ·  <@&1502769692190707882>`
         )
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
@@ -293,10 +293,10 @@ async function postReactionRoleEmbeds(channel, guild) {
             `*ₓ˚. ୭ pick ur region below ˚₊‧꩜ .*\n\n` +
             `${await emojiStr(guild, "1501488286735007814")}  ·  <@&1502770523179057292>\n` +
             `${await emojiStr(guild, "1501488303256375338")}  ·  <@&1502770341808701450>\n` +
-            `${await emojiStr(guild, "1502357245810184444")}  ·  <@&1502770017970946089>\n` +
+            `${await emojiStr(guild, "1501488322046857286")}  ·  <@&1502770017970946089>\n` +
             `${await emojiStr(guild, "1502341368767582259")}  ·  <@&1502769963545526523>\n` +
             `${await emojiStr(guild, "1502341151078744214")}  ·  <@&1502769868116725840>\n` +
-            `${await emojiStr(guild, "1502778200974168244")}  ·  <@&1502769820418969761>`
+            `${await emojiStr(guild, "1502341755561971762")}  ·  <@&1502769820418969761>`
         )
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
