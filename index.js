@@ -255,6 +255,7 @@ async function postReactionRoleEmbeds(channel, guild) {
             `${await emojiStr(guild, "1501488340875214908")}  ·  <@&1502769746867781642>\n` +
             `${await emojiStr(guild, "1501488390925844540")}  ·  <@&1502769692190707882>`
         )
+        .setImage("https://cdn.discordapp.com/attachments/1501247617793921208/1502781303123345418/Pink.gif?ex=6a00f5a6&is=69ffa426&hm=66ea5032c8235c0fd0ad3aebb25066a3b427b233471e2bddf289f9f1807b0d95&")
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
     const genderMsg = await channel.send({ embeds: [genderEmbed] });
@@ -275,6 +276,7 @@ async function postReactionRoleEmbeds(channel, guild) {
             `${await emojiStr(guild, "1501488372068388875")}  ·  <@&1502771190526119936>\n` +
             `${await emojiStr(guild, "1502341755561971762")}  ·  <@&1502771141079732244>`
         )
+        .setImage("https://cdn.discordapp.com/attachments/1501247617793921208/1502781302749921450/nekomimiyu_mii_.gif?ex=6a00f5a6&is=69ffa426&hm=6f6bb908887e3e544adba6b9d3edb675a4865e6fc484a221603837425d815d96&")
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
     const ageMsg = await channel.send({ embeds: [ageEmbed] });
@@ -298,6 +300,7 @@ async function postReactionRoleEmbeds(channel, guild) {
             `${await emojiStr(guild, "1502341151078744214")}  ·  <@&1502769868116725840>\n` +
             `${await emojiStr(guild, "1502341755561971762")}  ·  <@&1502769820418969761>`
         )
+        .setImage("https://cdn.discordapp.com/attachments/1501247617793921208/1502781303806755067/download.gif?ex=6a00f5a7&is=69ffa427&hm=ad69d7b2d0fb5f4f8229631e7e1f91051d0733cfdd995dc1c270d14277fd0d36&")
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
     const regionMsg = await channel.send({ embeds: [regionEmbed] });
