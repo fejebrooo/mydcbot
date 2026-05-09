@@ -6,8 +6,14 @@ const {
     EmbedBuilder,
     AuditLogEvent,
     PermissionFlagsBits,
+    AttachmentBuilder,
 } = require("discord.js");
 const http = require("http");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
+const { execFile } = require("child_process");
 
 const client = new Client({
     intents: [
@@ -360,6 +366,56 @@ client.on("guildMemberRemove", async (member) => {
 });
 
 /* =========================
+   MAKEGIF HELPER
+========================= */
+
+/**
+ * Download a URL to a temp file. Returns the temp file path.
+ */
+function downloadToTemp(url, ext) {
+    return new Promise((resolve, reject) => {
+        const tmpPath = path.join(os.tmpdir(), `makegif_in_${Date.now()}${ext}`);
+        const file = fs.createWriteStream(tmpPath);
+        const proto = url.startsWith("https") ? https : http;
+        proto.get(url, (res) => {
+            res.pipe(file);
+            file.on("finish", () => {
+                file.close(() => resolve(tmpPath));
+            });
+        }).on("error", (err) => {
+            fs.unlink(tmpPath, () => {});
+            reject(err);
+        });
+    });
+}
+
+/**
+ * Run the Python makegif script.
+ * Returns the output GIF path on success, throws on failure.
+ */
+function runMakegif(inputPath, caption) {
+    return new Promise((resolve, reject) => {
+        const outPath = path.join(os.tmpdir(), `makegif_out_${Date.now()}.gif`);
+        // Path to makegif.py — same directory as this index.js
+        const scriptPath = path.join(__dirname, "makegif.py");
+        const args = [scriptPath, inputPath, outPath];
+        if (caption) args.push(caption);
+
+        execFile("python", args, { timeout: 30000 }, (err, stdout, stderr) => {
+            if (err) {
+                console.error("makegif.py error:", stderr || err.message);
+                return reject(new Error(stderr || err.message));
+            }
+            if (stdout.startsWith("OK:")) {
+                resolve(outPath);
+            } else {
+                reject(new Error(stdout || "Unknown error from makegif.py"));
+            }
+        });
+    });
+}
+
+/* =========================
    READY EVENT
 ========================= */
 client.once("clientReady", async () => {
@@ -490,14 +546,12 @@ client.on("messageCreate", async (message) => {
     if (content.startsWith("b!ban")) {
         if (!OWNERS.includes(message.author.id)) return;
 
-        // Parse: split off "b!ban" then grab first token as target, rest as dm message
         const args = rawContent.slice("b!ban".length).trim();
         if (!args)
             return message.reply(
                 "❌ Usage: `b!ban @user [message]` or `b!ban <userid> [message]`",
             );
 
-        // Figure out the user ID — could be a @mention or a raw ID
         let targetId = null;
         let dmMessage = "";
 
@@ -517,20 +571,17 @@ client.on("messageCreate", async (message) => {
         }
 
         try {
-            // Try to fetch the user to DM them before banning
             let targetUser = null;
             try {
                 targetUser = await client.users.fetch(targetId);
             } catch (_) {}
 
-            // DM them before the ban so it can actually send
             if (dmMessage && targetUser) {
                 try {
                     await targetUser.send(dmMessage);
                 } catch (_) {}
             }
 
-            // Ban by ID — works even if they're not in the server
             await message.guild.bans.create(targetId, {
                 reason: dmMessage || "No reason provided.",
             });
@@ -560,6 +611,90 @@ client.on("messageCreate", async (message) => {
             } catch (_) {}
         } catch (err) {
             await message.reply(`❌ Failed to ban: \`${err.message}\``);
+        }
+        return;
+    }
+
+    /* =========================
+       b!makegif — add caption to image/gif
+       Usage (reply to image or gif):
+         b!makegif               — converts to gif, no caption
+         b!makegif [caption text] — adds caption above image/gif
+    ========================= */
+    if (content.startsWith("b!makegif")) {
+        // Extract caption — anything inside [...] or just after the command
+        const afterCmd = rawContent.slice("b!makegif".length).trim();
+        let caption = "";
+
+        // Support b!makegif [caption] or b!makegif caption
+        const bracketMatch = afterCmd.match(/^\[(.+)\]$/);
+        if (bracketMatch) {
+            caption = bracketMatch[1].trim();
+        } else {
+            caption = afterCmd;
+        }
+
+        // Find the image/gif — either from replied message or current message
+        let mediaUrl = null;
+        let mediaExt = ".png";
+
+        const targetMsg = message.reference
+            ? await message.channel.messages.fetch(message.reference.messageId).catch(() => null)
+            : message;
+
+        if (targetMsg) {
+            // Check attachments first
+            const attachment = targetMsg.attachments.find((a) =>
+                /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(a.url),
+            );
+            if (attachment) {
+                mediaUrl = attachment.url;
+                const extMatch = attachment.url.match(/\.(png|jpg|jpeg|webp|gif)/i);
+                mediaExt = extMatch ? `.${extMatch[1].toLowerCase()}` : ".png";
+            }
+
+            // Check embeds if no attachment
+            if (!mediaUrl) {
+                const embed = targetMsg.embeds.find(
+                    (e) => e.image || e.thumbnail,
+                );
+                if (embed) {
+                    const imgData = embed.image || embed.thumbnail;
+                    mediaUrl = imgData.url;
+                    const extMatch = mediaUrl.match(/\.(png|jpg|jpeg|webp|gif)/i);
+                    mediaExt = extMatch ? `.${extMatch[1].toLowerCase()}` : ".png";
+                }
+            }
+        }
+
+        if (!mediaUrl) {
+            return message.reply(
+                "❌ Reply to an image or GIF with `b!makegif [caption]` to use this command.",
+            );
+        }
+
+        // Show typing indicator while processing
+        await message.channel.sendTyping();
+
+        let inputPath = null;
+        let outputPath = null;
+
+        try {
+            inputPath = await downloadToTemp(mediaUrl, mediaExt);
+            outputPath = await runMakegif(inputPath, caption);
+
+            const attachment = new AttachmentBuilder(outputPath, {
+                name: "output.gif",
+            });
+
+            await message.reply({ files: [attachment] });
+        } catch (err) {
+            console.error("b!makegif error:", err);
+            await message.reply(`❌ Failed to make GIF: \`${err.message}\``);
+        } finally {
+            // Clean up temp files
+            if (inputPath) fs.unlink(inputPath, () => {});
+            if (outputPath) fs.unlink(outputPath, () => {});
         }
         return;
     }
@@ -646,6 +781,11 @@ client.on("messageCreate", async (message) => {
                 {
                     name: "b!ban @member|userid [message]",
                     value: "Bans by @mention or raw user ID. Anything after the target gets DMed to them before the ban. Works even if they're not in the server.",
+                    inline: false,
+                },
+                {
+                    name: "b!makegif [caption]",
+                    value: "Reply to any image or GIF with this command to convert it to a GIF. Optionally add a caption — use `b!makegif [who tf is this guy]` and it'll be stamped above the image in bold white text. Works on both static images and animated GIFs.",
                     inline: false,
                 },
             )
@@ -1019,8 +1159,8 @@ client.on("messageReactionAdd", async (reaction, user) => {
                 await member.roles.remove(UNVERIFIED_ROLE_ID);
             }
             try {
-    await user.send("✅ You are now verified!");
-} catch (_) {}
+                await user.send("✅ You are now verified!");
+            } catch (_) {}
             console.log(`✅ Verified ${user.tag}`);
         }
     } catch (err) {
