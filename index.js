@@ -616,17 +616,14 @@ client.on("messageCreate", async (message) => {
     }
 
     /* =========================
-       b!makegif — add caption to image/gif
-       Usage (reply to image or gif):
-         b!makegif               — converts to gif, no caption
-         b!makegif [caption text] — adds caption above image/gif
+       b!makegif — image/gif with caption OR text message card
+       Usage:
+         Reply to image/gif: b!makegif [caption] — adds caption bar on top
+         Reply to text msg:  b!makegif — makes a Discord message card GIF
     ========================= */
     if (content.startsWith("b!makegif")) {
-        // Extract caption — anything inside [...] or just after the command
         const afterCmd = rawContent.slice("b!makegif".length).trim();
         let caption = "";
-
-        // Support b!makegif [caption] or b!makegif caption
         const bracketMatch = afterCmd.match(/^\[(.+)\]$/);
         if (bracketMatch) {
             caption = bracketMatch[1].trim();
@@ -634,66 +631,81 @@ client.on("messageCreate", async (message) => {
             caption = afterCmd;
         }
 
-        // Find the image/gif — either from replied message or current message
+        if (!message.reference) {
+            return message.reply("❌ Reply to a message, image, or GIF with `b!makegif`.");
+        }
+
+        const targetMsg = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
+        if (!targetMsg) return message.reply("❌ Couldn't find the replied message.");
+
+        await message.channel.sendTyping();
+
+        // Check if replied message has an image/gif
         let mediaUrl = null;
         let mediaExt = ".png";
 
-        const targetMsg = message.reference
-            ? await message.channel.messages.fetch(message.reference.messageId).catch(() => null)
-            : message;
-
-        if (targetMsg) {
-            // Check attachments first
-            const attachment = targetMsg.attachments.find((a) =>
-                /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(a.url),
-            );
-            if (attachment) {
-                mediaUrl = attachment.url;
-                const extMatch = attachment.url.match(/\.(png|jpg|jpeg|webp|gif)/i);
+        const attachment = targetMsg.attachments.find((a) =>
+            /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(a.url),
+        );
+        if (attachment) {
+            mediaUrl = attachment.url;
+            const extMatch = attachment.url.match(/\.(png|jpg|jpeg|webp|gif)/i);
+            mediaExt = extMatch ? `.${extMatch[1].toLowerCase()}` : ".png";
+        }
+        if (!mediaUrl) {
+            const embed = targetMsg.embeds.find((e) => e.image || e.thumbnail);
+            if (embed) {
+                const imgData = embed.image || embed.thumbnail;
+                mediaUrl = imgData.url;
+                const extMatch = mediaUrl.match(/\.(png|jpg|jpeg|webp|gif)/i);
                 mediaExt = extMatch ? `.${extMatch[1].toLowerCase()}` : ".png";
             }
-
-            // Check embeds if no attachment
-            if (!mediaUrl) {
-                const embed = targetMsg.embeds.find(
-                    (e) => e.image || e.thumbnail,
-                );
-                if (embed) {
-                    const imgData = embed.image || embed.thumbnail;
-                    mediaUrl = imgData.url;
-                    const extMatch = mediaUrl.match(/\.(png|jpg|jpeg|webp|gif)/i);
-                    mediaExt = extMatch ? `.${extMatch[1].toLowerCase()}` : ".png";
-                }
-            }
         }
-
-        if (!mediaUrl) {
-            return message.reply(
-                "❌ Reply to an image or GIF with `b!makegif [caption]` to use this command.",
-            );
-        }
-
-        // Show typing indicator while processing
-        await message.channel.sendTyping();
 
         let inputPath = null;
+        let avatarPath = null;
         let outputPath = null;
 
         try {
-            inputPath = await downloadToTemp(mediaUrl, mediaExt);
-            outputPath = await runMakegif(inputPath, caption);
+            outputPath = path.join(os.tmpdir(), `makegif_out_${Date.now()}.gif`);
+            const scriptPath = path.join(__dirname, "makegif.py");
 
-            const attachment = new AttachmentBuilder(outputPath, {
-                name: "output.gif",
-            });
+            if (mediaUrl) {
+                // IMAGE/GIF mode
+                inputPath = await downloadToTemp(mediaUrl, mediaExt);
+                await new Promise((resolve, reject) => {
+                    const args = ["image", inputPath, outputPath];
+                    if (caption) args.push(caption);
+                    require("child_process").execFile("python3", [scriptPath, ...args], { timeout: 30000 }, (err, stdout, stderr) => {
+                        if (err) return reject(new Error(stderr || err.message));
+                        stdout.startsWith("OK:") ? resolve() : reject(new Error(stdout));
+                    });
+                });
+            } else {
+                // TEXT MESSAGE mode
+                const msgText = targetMsg.content || "[no text]";
+                const author = targetMsg.author;
+                const username = targetMsg.member?.displayName || author.username;
+                const avatarUrl = author.displayAvatarURL({ extension: "png", size: 128 });
+                avatarPath = await downloadToTemp(avatarUrl, ".png");
 
-            await message.reply({ files: [attachment] });
+                await new Promise((resolve, reject) => {
+                    const args = [scriptPath, "text", outputPath, username, avatarPath, msgText];
+                    require("child_process").execFile("python3", args, { timeout: 30000 }, (err, stdout, stderr) => {
+                        if (err) return reject(new Error(stderr || err.message));
+                        stdout.startsWith("OK:") ? resolve() : reject(new Error(stdout));
+                    });
+                });
+            }
+
+            const att = new AttachmentBuilder(outputPath, { name: "output.gif" });
+            await message.reply({ files: [att] });
         } catch (err) {
             console.error("b!makegif error:", err);
             await message.reply(`❌ Failed to make GIF: \`${err.message}\``);
         } finally {
-            // Clean up temp files
             if (inputPath) fs.unlink(inputPath, () => {});
+            if (avatarPath) fs.unlink(avatarPath, () => {});
             if (outputPath) fs.unlink(outputPath, () => {});
         }
         return;
