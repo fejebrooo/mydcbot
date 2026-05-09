@@ -187,8 +187,10 @@ const server = http.createServer((req, res) => {
     res.writeHead(200);
     res.end("Bot is alive!");
 });
-server.listen(3000, () => {
-    console.log("Keep-alive server running on port 3000");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, () => {
+    console.log(`Keep-alive server running on port ${PORT}`);
 });
 
 /* =========================
@@ -360,7 +362,7 @@ client.on("guildMemberRemove", async (member) => {
 /* =========================
    READY EVENT
 ========================= */
-client.once("ready", async () => {
+client.once("clientReady", async () => {
     console.log(`${client.user.tag} is online`);
 
     client.user.setPresence({
@@ -1016,7 +1018,9 @@ client.on("messageReactionAdd", async (reaction, user) => {
             if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
                 await member.roles.remove(UNVERIFIED_ROLE_ID);
             }
-            await user.send("✅ You are now verified!");
+            try {
+    await user.send("✅ You are now verified!");
+} catch (_) {}
             console.log(`✅ Verified ${user.tag}`);
         }
     } catch (err) {
