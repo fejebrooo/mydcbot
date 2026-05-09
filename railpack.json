@@ -1,0 +1,12 @@
+{
+  "provider": "node",
+  "install": {
+    "cmds": [
+      "npm install",
+      "pip install Pillow"
+    ]
+  },
+  "start": {
+    "cmd": "node index.js"
+  }
+}
