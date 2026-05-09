@@ -198,9 +198,9 @@ let rrRegionMessageId = null;
 // Emoji ID  →  { roleId, name }
 //
 // ORDER matches what you gave me:
-//   20+          :00DNSbow:     1502778001769631745  →  role 1502771231223582731
-//   15-18        :emoji_5:      1502778012213710949  →  role 1502771190526119936
-//   10-14        :DNSheartbow:  1502778033537417407  →  role 1502771141079732244
+//   18+          :00DNSbow:     1502778001769631745  →  role 1502771231223582731
+//   15-17        :emoji_5:      1502778012213710949  →  role 1502771190526119936
+//   13-14        :DNSheartbow:  1502778033537417407  →  role 1502771141079732244
 //   south america :emoji_1:    1502778046304878744  →  role 1502770523179057292
 //   north america :emoji_2:    1502778059785502751  →  role 1502770341808701450
 //   australia    :ggbunnyfgg:   1502778101526958261  →  role 1502770017970946089
@@ -217,9 +217,9 @@ const GENDER_ROLES = {
 };
 
 const AGE_ROLES = {
-    "1502342189676498954": { roleId: "1502771231223582731", name: "20+",   emojiName: "00DNSbow"    },
-    "1501488372068388875": { roleId: "1502771190526119936", name: "15-18", emojiName: "emoji_5"     },
-    "1502341755561971762": { roleId: "1502771141079732244", name: "10-14", emojiName: "DNSheartbow" },
+    "1502342189676498954": { roleId: "1502771231223582731", name: "18+",   emojiName: "00DNSbow"    },
+    "1501488372068388875": { roleId: "1502771190526119936", name: "15-17", emojiName: "emoji_5"     },
+    "1502341755561971762": { roleId: "1502771141079732244", name: "13-14", emojiName: "DNSheartbow" },
 };
 
 const REGION_ROLES = {
