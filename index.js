@@ -231,16 +231,20 @@ const REGION_ROLES = {
     "1502778200974168244": { roleId: "1502769820418969761", name: "europe",        emojiName: "ggbunnyfg"   },
 };
 
-/* Helper: returns the correct Discord emoji string from the guild cache by ID */
-function emojiStr(guild, emojiId) {
-    const e = guild.emojis.cache.get(emojiId);
-    if (!e) return `<:unknown:${emojiId}>`;
-    // animated emojis use <a:name:id>, static use <:name:id>
+/* Helper: returns the correct Discord emoji string, fetching from API if not cached */
+async function emojiStr(guild, emojiId) {
+    let e = guild.emojis.cache.get(emojiId);
+    if (!e) {
+        try { e = await guild.emojis.fetch(emojiId); } catch (_) {}
+    }
+    if (!e) return `❓`;
     return e.animated ? `<a:${e.name}:${e.id}>` : `<:${e.name}:${e.id}>`;
 }
 
 /* Posts the 3 kawaii reaction role embeds */
 async function postReactionRoleEmbeds(channel, guild) {
+    // Force-fetch ALL guild emojis into cache first
+    await guild.emojis.fetch();
 
     // ── EMBED 1 — Gender ──────────────────────────────────────────────
     const genderEmbed = new EmbedBuilder()
@@ -248,8 +252,8 @@ async function postReactionRoleEmbeds(channel, guild) {
         .setTitle("♡ gender ♡")
         .setDescription(
             `*ₓ˚. ୭ pick ur gender below ˚₊‧꩜ .*\n\n` +
-            `${emojiStr(guild, "1502778219869507635")}  ·  <@&1502769746867781642>\n` +
-            `${emojiStr(guild, "1502778264693899334")}  ·  <@&1502769692190707882>`
+            `${await emojiStr(guild, "1502778219869507635")}  ·  <@&1502769746867781642>\n` +
+            `${await emojiStr(guild, "1502778264693899334")}  ·  <@&1502769692190707882>`
         )
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
@@ -267,9 +271,9 @@ async function postReactionRoleEmbeds(channel, guild) {
         .setTitle("♡ age ♡")
         .setDescription(
             `*ₓ˚. ୭ pick ur age range below ˚₊‧꩜ .*\n\n` +
-            `${emojiStr(guild, "1502778001769631745")}  ·  <@&1502771231223582731>\n` +
-            `${emojiStr(guild, "1502778012213710949")}  ·  <@&1502771190526119936>\n` +
-            `${emojiStr(guild, "1502778033537417407")}  ·  <@&1502771141079732244>`
+            `${await emojiStr(guild, "1502778001769631745")}  ·  <@&1502771231223582731>\n` +
+            `${await emojiStr(guild, "1502778012213710949")}  ·  <@&1502771190526119936>\n` +
+            `${await emojiStr(guild, "1502778033537417407")}  ·  <@&1502771141079732244>`
         )
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
@@ -287,12 +291,12 @@ async function postReactionRoleEmbeds(channel, guild) {
         .setTitle("♡ region ♡")
         .setDescription(
             `*ₓ˚. ୭ pick ur region below ˚₊‧꩜ .*\n\n` +
-            `${emojiStr(guild, "1502778046304878744")}  ·  <@&1502770523179057292>\n` +
-            `${emojiStr(guild, "1502778059785502751")}  ·  <@&1502770341808701450>\n` +
-            `${emojiStr(guild, "1502778101526958261")}  ·  <@&1502770017970946089>\n` +
-            `${emojiStr(guild, "1502778167423668484")}  ·  <@&1502769963545526523>\n` +
-            `${emojiStr(guild, "1502778184171520111")}  ·  <@&1502769868116725840>\n` +
-            `${emojiStr(guild, "1502778200974168244")}  ·  <@&1502769820418969761>`
+            `${await emojiStr(guild, "1502778046304878744")}  ·  <@&1502770523179057292>\n` +
+            `${await emojiStr(guild, "1502778059785502751")}  ·  <@&1502770341808701450>\n` +
+            `${await emojiStr(guild, "1502778101526958261")}  ·  <@&1502770017970946089>\n` +
+            `${await emojiStr(guild, "1502778167423668484")}  ·  <@&1502769963545526523>\n` +
+            `${await emojiStr(guild, "1502778184171520111")}  ·  <@&1502769868116725840>\n` +
+            `${await emojiStr(guild, "1502778200974168244")}  ·  <@&1502769820418969761>`
         )
         .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
 
