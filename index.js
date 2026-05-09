@@ -401,7 +401,7 @@ function runMakegif(inputPath, caption) {
         const args = [scriptPath, inputPath, outPath];
         if (caption) args.push(caption);
 
-        execFile("python", args, { timeout: 30000 }, (err, stdout, stderr) => {
+        execFile("py", args, { timeout: 30000 }, (err, stdout, stderr) => {
             if (err) {
                 console.error("makegif.py error:", stderr || err.message);
                 return reject(new Error(stderr || err.message));
