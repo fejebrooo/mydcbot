@@ -65,7 +65,7 @@ const notifyPrefs = {
 // Maintenance mode
 let maintenanceMode = false;
 
-// Savage mode — bot roasts anyone who pings it
+// Savage mode
 let savageMode = false;
 const ROASTS = [
     "you pinged a bot because no real person wants to talk to you. sit with that.",
@@ -176,15 +176,128 @@ const nukeTracker = {};
 const NUKE_THRESHOLD = 5;
 const NUKE_WINDOW = 10000;
 
-// Number emojis mapped to owner index
 const OWNER_TOGGLE_EMOJIS = ["1️⃣", "2️⃣", "3️⃣"];
 
-// Status emoji map
 const STATUS_EMOJIS = {
-    "🟢": { status: "online", label: "Online" },
-    "🔴": { status: "dnd", label: "Do Not Disturb" },
+    "🟢": { status: "online",    label: "Online"            },
+    "🔴": { status: "dnd",       label: "Do Not Disturb"    },
     "⚫": { status: "invisible", label: "Invisible (Offline)" },
 };
+
+/* =========================
+   REACTION ROLES CONFIG
+========================= */
+const REACTION_ROLES_CHANNEL_ID = "1502771453022699630";
+
+// Message IDs set after b!reactionroles posts them
+let rrGenderMessageId = null;
+let rrAgeMessageId    = null;
+let rrRegionMessageId = null;
+
+//
+// Emoji ID  →  { roleId, name }
+//
+// ORDER matches what you gave me:
+//   20+          :00DNSbow:     1502778001769631745  →  role 1502771231223582731
+//   15-18        :emoji_5:      1502778012213710949  →  role 1502771190526119936
+//   10-14        :DNSheartbow:  1502778033537417407  →  role 1502771141079732244
+//   south america :emoji_1:    1502778046304878744  →  role 1502770523179057292
+//   north america :emoji_2:    1502778059785502751  →  role 1502770341808701450
+//   australia    :ggbunnyfgg:   1502778101526958261  →  role 1502770017970946089
+//   africa       :ggbunnyfg~1:  1502778167423668484  →  role 1502769963545526523
+//   asia         :ggbunnyfg~2:  1502778184171520111  →  role 1502769868116725840
+//   europe       :ggbunnyfg:    1502778200974168244  →  role 1502769820418969761
+//   female       :emoji_6:      1502778219869507635  →  role 1502769746867781642
+//   male         :emoji_4:      1502778264693899334  →  role 1502769692190707882
+//
+
+const GENDER_ROLES = {
+    "1502778219869507635": { roleId: "1502769746867781642", name: "female", emojiName: "emoji_6"  },
+    "1502778264693899334": { roleId: "1502769692190707882", name: "male",   emojiName: "emoji_4"  },
+};
+
+const AGE_ROLES = {
+    "1502778001769631745": { roleId: "1502771231223582731", name: "20+",   emojiName: "00DNSbow"    },
+    "1502778012213710949": { roleId: "1502771190526119936", name: "15-18", emojiName: "emoji_5"     },
+    "1502778033537417407": { roleId: "1502771141079732244", name: "10-14", emojiName: "DNSheartbow" },
+};
+
+const REGION_ROLES = {
+    "1502778046304878744": { roleId: "1502770523179057292", name: "south america", emojiName: "emoji_1"     },
+    "1502778059785502751": { roleId: "1502770341808701450", name: "north america", emojiName: "emoji_2"     },
+    "1502778101526958261": { roleId: "1502770017970946089", name: "australia",     emojiName: "ggbunnyfgg"  },
+    "1502778167423668484": { roleId: "1502769963545526523", name: "africa",        emojiName: "ggbunnyfg~1" },
+    "1502778184171520111": { roleId: "1502769868116725840", name: "asia",          emojiName: "ggbunnyfg~2" },
+    "1502778200974168244": { roleId: "1502769820418969761", name: "europe",        emojiName: "ggbunnyfg"   },
+};
+
+/* Posts the 3 kawaii reaction role embeds */
+async function postReactionRoleEmbeds(channel, guild) {
+
+    // ── EMBED 1 — Gender ──────────────────────────────────────────────
+    const genderEmbed = new EmbedBuilder()
+        .setColor("#ffc0cb")
+        .setTitle("♡ gender ♡")
+        .setDescription(
+            `*ₓ˚. ୭ pick ur gender below ˚₊‧꩜ .*\n\n` +
+            `<:emoji_6:1502778219869507635>  ·  <@&1502769746867781642>\n` +
+            `<:emoji_4:1502778264693899334>  ·  <@&1502769692190707882>`
+        )
+        .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
+
+    const genderMsg = await channel.send({ embeds: [genderEmbed] });
+    rrGenderMessageId = genderMsg.id;
+
+    for (const [emojiId, data] of Object.entries(GENDER_ROLES)) {
+        const e = guild.emojis.cache.get(emojiId);
+        if (e) await genderMsg.react(e);
+    }
+
+    // ── EMBED 2 — Age ─────────────────────────────────────────────────
+    const ageEmbed = new EmbedBuilder()
+        .setColor("#ffc0cb")
+        .setTitle("♡ age ♡")
+        .setDescription(
+            `*ₓ˚. ୭ pick ur age range below ˚₊‧꩜ .*\n\n` +
+            `<:00DNSbow:1502778001769631745>  ·  <@&1502771231223582731>\n` +
+            `<:emoji_5:1502778012213710949>  ·  <@&1502771190526119936>\n` +
+            `<:DNSheartbow:1502778033537417407>  ·  <@&1502771141079732244>`
+        )
+        .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
+
+    const ageMsg = await channel.send({ embeds: [ageEmbed] });
+    rrAgeMessageId = ageMsg.id;
+
+    for (const [emojiId] of Object.entries(AGE_ROLES)) {
+        const e = guild.emojis.cache.get(emojiId);
+        if (e) await ageMsg.react(e);
+    }
+
+    // ── EMBED 3 — Region ──────────────────────────────────────────────
+    const regionEmbed = new EmbedBuilder()
+        .setColor("#ffc0cb")
+        .setTitle("♡ region ♡")
+        .setDescription(
+            `*ₓ˚. ୭ pick ur region below ˚₊‧꩜ .*\n\n` +
+            `<:emoji_1:1502778046304878744>  ·  <@&1502770523179057292>\n` +
+            `<:emoji_2:1502778059785502751>  ·  <@&1502770341808701450>\n` +
+            `<:ggbunnyfgg:1502778101526958261>  ·  <@&1502770017970946089>\n` +
+            `<:ggbunnyfg~1:1502778167423668484>  ·  <@&1502769963545526523>\n` +
+            `<:ggbunnyfg~2:1502778184171520111>  ·  <@&1502769868116725840>\n` +
+            `<:ggbunnyfg:1502778200974168244>  ·  <@&1502769820418969761>`
+        )
+        .setFooter({ text: "♡ react to get ur role · unreact to remove it ♡" });
+
+    const regionMsg = await channel.send({ embeds: [regionEmbed] });
+    rrRegionMessageId = regionMsg.id;
+
+    for (const [emojiId] of Object.entries(REGION_ROLES)) {
+        const e = guild.emojis.cache.get(emojiId);
+        if (e) await regionMsg.react(e);
+    }
+
+    console.log("✅ Reaction role embeds posted.");
+}
 
 /* =========================
    KEEP-ALIVE SERVER
@@ -194,10 +307,7 @@ const server = http.createServer((req, res) => {
     res.end("Bot is alive!");
 });
 const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-    console.log(`Keep-alive server running on port ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Keep-alive server running on port ${PORT}`));
 
 /* =========================
    DM ALL OWNERS HELPER
@@ -219,8 +329,8 @@ async function dmOwners(message) {
 ========================= */
 function formatUptime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
-    const days = Math.floor(totalSeconds / 86400);
-    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const days    = Math.floor(totalSeconds / 86400);
+    const hours   = Math.floor((totalSeconds % 86400) / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
     return `${days}d ${hours}h ${minutes}m ${seconds}s`;
@@ -238,27 +348,23 @@ async function buildNotifyEmbed() {
             const user = await client.users.fetch(ownerId);
             name = user.username;
         } catch (_) {}
-        const status = notifyPrefs[ownerId] ? "✅ Receiving DMs" : "❌ DMs Off";
         fields.push({
             name: `${OWNER_TOGGLE_EMOJIS[i]} ${name}`,
-            value: status,
+            value: notifyPrefs[ownerId] ? "✅ Receiving DMs" : "❌ DMs Off",
             inline: false,
         });
     }
-
     return new EmbedBuilder()
         .setColor("#ffc0cb")
         .setTitle("♡ Owner Notifications ♡")
-        .setDescription(
-            "React with 1️⃣ 2️⃣ 3️⃣ to toggle DM notifications on/off for each owner.\n\n**✅ = receiving DMs** | **❌ = DMs off**",
-        )
+        .setDescription("React with 1️⃣ 2️⃣ 3️⃣ to toggle DM notifications on/off.\n\n**✅ = receiving DMs** | **❌ = DMs off**")
         .addFields(fields)
         .setFooter({ text: "Owner-only • Toggles on react" })
         .setTimestamp();
 }
 
 /* =========================
-   ANTINUKE TRACKER HELPER
+   ANTINUKE HELPERS
 ========================= */
 function trackNukeAction(userId, guild, actionLabel) {
     if (!antinukeEnabled) return;
@@ -266,11 +372,8 @@ function trackNukeAction(userId, guild, actionLabel) {
 
     if (!nukeTracker[userId]) {
         nukeTracker[userId] = 0;
-        setTimeout(() => {
-            delete nukeTracker[userId];
-        }, NUKE_WINDOW);
+        setTimeout(() => { delete nukeTracker[userId]; }, NUKE_WINDOW);
     }
-
     nukeTracker[userId]++;
 
     if (nukeTracker[userId] >= NUKE_THRESHOLD) {
@@ -281,49 +384,31 @@ function trackNukeAction(userId, guild, actionLabel) {
 
 async function handleNuke(userId, guild, actionLabel) {
     console.log(`🚨 Antinuke triggered for user ${userId} — ${actionLabel}`);
-
     try {
         const member = await guild.members.fetch(userId);
-        const rolesToRemove = member.roles.cache.filter(
-            (r) => r.id !== guild.id,
-        );
+        const rolesToRemove = member.roles.cache.filter((r) => r.id !== guild.id);
         await member.roles.remove(rolesToRemove);
-
         await dmOwners(
-            `🚨 **ANTINUKE TRIGGERED**\n` +
-                `User <@${userId}> performed **${actionLabel}** rapidly (${NUKE_THRESHOLD}+ times in ${NUKE_WINDOW / 1000}s).\n` +
-                `All their roles have been stripped automatically.`,
+            `🚨 **ANTINUKE TRIGGERED**\nUser <@${userId}> performed **${actionLabel}** rapidly (${NUKE_THRESHOLD}+ times in ${NUKE_WINDOW / 1000}s).\nAll their roles have been stripped automatically.`
         );
-
-        console.log(`✅ Stripped roles from ${userId}`);
     } catch (err) {
         console.error("Antinuke failed to strip roles:", err);
-        await dmOwners(
-            `🚨 **ANTINUKE ALERT** — <@${userId}> is nuking (${actionLabel}) but I couldn't strip their roles. Check permissions!`,
-        );
+        await dmOwners(`🚨 **ANTINUKE ALERT** — <@${userId}> is nuking (${actionLabel}) but I couldn't strip their roles. Check permissions!`);
     }
 }
 
 /* =========================
-   CRASH HANDLER
+   CRASH HANDLERS
 ========================= */
 process.on("uncaughtException", async (err) => {
     console.error("Uncaught Exception:", err);
-    try {
-        await dmOwners(
-            `⚠️ **Bot crashed!**\n\`\`\`${err.message}\`\`\`\nIt will restart automatically.`,
-        );
-    } catch (_) {}
+    try { await dmOwners(`⚠️ **Bot crashed!**\n\`\`\`${err.message}\`\`\`\nIt will restart automatically.`); } catch (_) {}
     process.exit(1);
 });
 
 process.on("unhandledRejection", async (reason) => {
     console.error("Unhandled Rejection:", reason);
-    try {
-        await dmOwners(
-            `⚠️ **Bot error (unhandled rejection):**\n\`\`\`${reason}\`\`\``,
-        );
-    } catch (_) {}
+    try { await dmOwners(`⚠️ **Bot error (unhandled rejection):**\n\`\`\`${reason}\`\`\``); } catch (_) {}
 });
 
 /* =========================
@@ -333,16 +418,11 @@ client.on("guildBanAdd", async (ban) => {
     if (!antinukeEnabled) return;
     try {
         await new Promise((r) => setTimeout(r, 500));
-        const logs = await ban.guild.fetchAuditLogs({
-            type: AuditLogEvent.MemberBanAdd,
-            limit: 1,
-        });
+        const logs = await ban.guild.fetchAuditLogs({ type: AuditLogEvent.MemberBanAdd, limit: 1 });
         const entry = logs.entries.first();
         if (!entry) return;
         trackNukeAction(entry.executor.id, ban.guild, "mass ban");
-    } catch (err) {
-        console.error("Antinuke ban check error:", err);
-    }
+    } catch (err) { console.error("Antinuke ban check error:", err); }
 });
 
 /* =========================
@@ -352,26 +432,17 @@ client.on("guildMemberRemove", async (member) => {
     if (!antinukeEnabled) return;
     try {
         await new Promise((r) => setTimeout(r, 500));
-        const logs = await member.guild.fetchAuditLogs({
-            type: AuditLogEvent.MemberKick,
-            limit: 1,
-        });
+        const logs = await member.guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick, limit: 1 });
         const entry = logs.entries.first();
         if (!entry || entry.target.id !== member.id) return;
         if (Date.now() - entry.createdTimestamp > 3000) return;
         trackNukeAction(entry.executor.id, member.guild, "mass kick");
-    } catch (err) {
-        console.error("Antinuke kick check error:", err);
-    }
+    } catch (err) { console.error("Antinuke kick check error:", err); }
 });
 
 /* =========================
-   MAKEGIF HELPER
+   MAKEGIF HELPERS
 ========================= */
-
-/**
- * Download a URL to a temp file. Returns the temp file path.
- */
 function downloadToTemp(url, ext) {
     return new Promise((resolve, reject) => {
         const tmpPath = path.join(os.tmpdir(), `makegif_in_${Date.now()}${ext}`);
@@ -379,38 +450,20 @@ function downloadToTemp(url, ext) {
         const proto = url.startsWith("https") ? https : http;
         proto.get(url, (res) => {
             res.pipe(file);
-            file.on("finish", () => {
-                file.close(() => resolve(tmpPath));
-            });
-        }).on("error", (err) => {
-            fs.unlink(tmpPath, () => {});
-            reject(err);
-        });
+            file.on("finish", () => file.close(() => resolve(tmpPath)));
+        }).on("error", (err) => { fs.unlink(tmpPath, () => {}); reject(err); });
     });
 }
 
-/**
- * Run the Python makegif script.
- * Returns the output GIF path on success, throws on failure.
- */
 function runMakegif(inputPath, caption) {
     return new Promise((resolve, reject) => {
         const outPath = path.join(os.tmpdir(), `makegif_out_${Date.now()}.gif`);
-        // Path to makegif.py — same directory as this index.js
         const scriptPath = path.join(__dirname, "makegif.py");
         const args = [scriptPath, inputPath, outPath];
         if (caption) args.push(caption);
-
         execFile("python3", args, { timeout: 30000 }, (err, stdout, stderr) => {
-            if (err) {
-                console.error("makegif.py error:", stderr || err.message);
-                return reject(new Error(stderr || err.message));
-            }
-            if (stdout.startsWith("OK:")) {
-                resolve(outPath);
-            } else {
-                reject(new Error(stdout || "Unknown error from makegif.py"));
-            }
+            if (err) return reject(new Error(stderr || err.message));
+            stdout.startsWith("OK:") ? resolve(outPath) : reject(new Error(stdout || "Unknown error from makegif.py"));
         });
     });
 }
@@ -426,31 +479,19 @@ client.once("clientReady", async () => {
         activities: [{ name: "Verification in progress on /banilla", type: 0 }],
     });
 
-    await dmOwners(
-        `✅ **Bot is back online!**\n${client.user.tag} just started up successfully.`,
-    );
+    await dmOwners(`✅ **Bot is back online!**\n${client.user.tag} just started up successfully.`);
 
     try {
         const channel = await client.channels.fetch(VERIFY_CHANNEL_ID);
         const guild = channel.guild;
+        const msg = await channel.messages.fetch(VERIFY_MESSAGE_ID, { force: true });
 
-        const msg = await channel.messages.fetch(VERIFY_MESSAGE_ID, {
-            force: true,
-        });
-
-        const ruleEmoji = guild.emojis.cache.get(RULE_EMOJI_ID);
+        const ruleEmoji   = guild.emojis.cache.get(RULE_EMOJI_ID);
         const verifyEmoji = guild.emojis.cache.get(VERIFY_EMOJI_ID);
 
         if (!msg.reactions.cache.has(VERIFY_EMOJI_ID)) {
-            if (verifyEmoji) {
-                await msg.react(verifyEmoji);
-                console.log(
-                    `✅ Reacted with custom emoji :${verifyEmoji.name}:`,
-                );
-            } else {
-                await msg.react("✅");
-                console.log("✅ Reacted with fallback emoji");
-            }
+            if (verifyEmoji) { await msg.react(verifyEmoji); console.log(`✅ Reacted with :${verifyEmoji.name}:`); }
+            else             { await msg.react("✅");        console.log("✅ Reacted with fallback emoji"); }
         }
 
         const embed = new EmbedBuilder()
@@ -458,31 +499,14 @@ client.once("clientReady", async () => {
             .setTitle("♡ Server Rules & Verification ♡")
             .setImage(DIVIDER_GIF_URL)
             .setDescription(
-                `
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no gore or nsfw
-& no leaking or doxxing
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no harassment, threats,
-or hate speech
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no self-promotion,
-or spamming
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no raiding or sending other serv minions in here
-to "spy"
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} don't start drama in the serv
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} please show respect to
-all staff & members
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} reach out to us if you have
-any issues or concerns
-
-${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} this server is owned by ${OWNERS.map((id) => `<@${id}>`).join(" & ")}
-
-||@everyone||
-            `,
+                `\n${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no gore or nsfw\n& no leaking or doxxing\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no harassment, threats,\nor hate speech\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no self-promotion,\nor spamming\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} no raiding or sending other serv minions in here to "spy"\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} don't start drama in the serv\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} please show respect to\nall staff & members\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} reach out to us if you have\nany issues or concerns\n\n` +
+                `${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} this server is owned by ${OWNERS.map((id) => `<@${id}>`).join(" & ")}\n\n||@everyone||`
             )
             .setFooter({ text: "Verification System" });
 
@@ -499,19 +523,18 @@ ${ruleEmoji ? `<a:${ruleEmoji.name}:${ruleEmoji.id}>` : "📌"} this server is o
 client.on("messageCreate", async (message) => {
     if (message.author.bot) return;
 
-    // Savage mode — roast anyone who pings the bot
+    // Savage mode
     if (savageMode && message.mentions.has(client.user)) {
         const roast = ROASTS[Math.floor(Math.random() * ROASTS.length)];
         return message.reply(roast);
     }
 
     const rawContent = message.content.trim();
-    const content = rawContent.toLowerCase();
+    const content    = rawContent.toLowerCase();
 
     /* --- b!roast @member --- */
     if (content.startsWith("b!roast") && message.mentions.members.size > 0) {
         const target = message.mentions.members.first();
-
         const rareRoasts = [
             `<@${target.id}> your mom didn't raise a failure she just raised you and that's basically the same thing`,
             `<@${target.id}> even your imaginary friends stopped showing up`,
@@ -522,22 +545,12 @@ client.on("messageCreate", async (message) => {
             `<@${target.id}> you're not the black sheep. you're the reason the family stopped having reunions.`,
             `<@${target.id}> bro has been the worst thing to happen to everyone who's ever met him and doesn't even know it`,
         ];
+        const isRare    = Math.random() < 1 / 6;
+        const roastText = isRare
+            ? rareRoasts[Math.floor(Math.random() * rareRoasts.length)]
+            : `<@${target.id}> ${ROASTS[Math.floor(Math.random() * ROASTS.length)]}`;
 
-        const isRare = Math.random() < 1 / 6;
-        let roastText;
-
-        if (isRare) {
-            roastText =
-                rareRoasts[Math.floor(Math.random() * rareRoasts.length)];
-        } else {
-            const regularRoast =
-                ROASTS[Math.floor(Math.random() * ROASTS.length)];
-            roastText = `<@${target.id}> ${regularRoast}`;
-        }
-
-        try {
-            await message.delete();
-        } catch (_) {}
+        try { await message.delete(); } catch (_) {}
         await message.channel.send(roastText);
         return;
     }
@@ -547,106 +560,54 @@ client.on("messageCreate", async (message) => {
         if (!OWNERS.includes(message.author.id)) return;
 
         const args = rawContent.slice("b!ban".length).trim();
-        if (!args)
-            return message.reply(
-                "❌ Usage: `b!ban @user [message]` or `b!ban <userid> [message]`",
-            );
+        if (!args) return message.reply("❌ Usage: `b!ban @user [message]` or `b!ban <userid> [message]`");
 
-        let targetId = null;
-        let dmMessage = "";
-
+        let targetId = null, dmMessage = "";
         const mentionMatch = args.match(/^<@!?(\d+)>(.*)/s);
-        const idMatch = args.match(/^(\d{17,20})(.*)/s);
+        const idMatch      = args.match(/^(\d{17,20})(.*)/s);
 
-        if (mentionMatch) {
-            targetId = mentionMatch[1];
-            dmMessage = mentionMatch[2].trim();
-        } else if (idMatch) {
-            targetId = idMatch[1];
-            dmMessage = idMatch[2].trim();
-        } else {
-            return message.reply(
-                "❌ Couldn't find a valid user. Use `b!ban @user` or `b!ban <userid>`",
-            );
-        }
+        if      (mentionMatch) { targetId = mentionMatch[1]; dmMessage = mentionMatch[2].trim(); }
+        else if (idMatch)      { targetId = idMatch[1];      dmMessage = idMatch[2].trim(); }
+        else return message.reply("❌ Couldn't find a valid user. Use `b!ban @user` or `b!ban <userid>`");
 
         try {
             let targetUser = null;
-            try {
-                targetUser = await client.users.fetch(targetId);
-            } catch (_) {}
+            try { targetUser = await client.users.fetch(targetId); } catch (_) {}
+            if (dmMessage && targetUser) { try { await targetUser.send(dmMessage); } catch (_) {} }
 
-            if (dmMessage && targetUser) {
-                try {
-                    await targetUser.send(dmMessage);
-                } catch (_) {}
-            }
-
-            await message.guild.bans.create(targetId, {
-                reason: dmMessage || "No reason provided.",
-            });
+            await message.guild.bans.create(targetId, { reason: dmMessage || "No reason provided." });
 
             const embed = new EmbedBuilder()
                 .setColor("#ff0000")
                 .setTitle("🔨 Member Banned")
                 .addFields(
-                    {
-                        name: "User",
-                        value: targetUser
-                            ? `${targetUser.tag} (<@${targetId}>)`
-                            : `<@${targetId}>`,
-                        inline: true,
-                    },
-                    {
-                        name: "Message sent to them",
-                        value: dmMessage || "None",
-                        inline: false,
-                    },
+                    { name: "User",               value: targetUser ? `${targetUser.tag} (<@${targetId}>)` : `<@${targetId}>`, inline: true },
+                    { name: "Message sent to them", value: dmMessage || "None", inline: false },
                 )
                 .setTimestamp();
-
             await message.channel.send({ embeds: [embed] });
-            try {
-                await message.delete();
-            } catch (_) {}
+            try { await message.delete(); } catch (_) {}
         } catch (err) {
             await message.reply(`❌ Failed to ban: \`${err.message}\``);
         }
         return;
     }
 
-    /* =========================
-       b!makegif — image/gif with caption OR text message card
-       Usage:
-         Reply to image/gif: b!makegif [caption] — adds caption bar on top
-         Reply to text msg:  b!makegif — makes a Discord message card GIF
-    ========================= */
+    /* --- b!makegif --- */
     if (content.startsWith("b!makegif")) {
-        const afterCmd = rawContent.slice("b!makegif".length).trim();
-        let caption = "";
+        const afterCmd   = rawContent.slice("b!makegif".length).trim();
         const bracketMatch = afterCmd.match(/^\[(.+)\]$/);
-        if (bracketMatch) {
-            caption = bracketMatch[1].trim();
-        } else {
-            caption = afterCmd;
-        }
+        const caption    = bracketMatch ? bracketMatch[1].trim() : afterCmd;
 
-        if (!message.reference) {
-            return message.reply("❌ Reply to a message, image, or GIF with `b!makegif`.");
-        }
+        if (!message.reference) return message.reply("❌ Reply to a message, image, or GIF with `b!makegif`.");
 
         const targetMsg = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
         if (!targetMsg) return message.reply("❌ Couldn't find the replied message.");
 
         await message.channel.sendTyping();
 
-        // Check if replied message has an image/gif
-        let mediaUrl = null;
-        let mediaExt = ".png";
-
-        const attachment = targetMsg.attachments.find((a) =>
-            /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(a.url),
-        );
+        let mediaUrl = null, mediaExt = ".png";
+        const attachment = targetMsg.attachments.find((a) => /\.(png|jpg|jpeg|webp|gif)(\?|$)/i.test(a.url));
         if (attachment) {
             mediaUrl = attachment.url;
             const extMatch = attachment.url.match(/\.(png|jpg|jpeg|webp|gif)/i);
@@ -662,16 +623,12 @@ client.on("messageCreate", async (message) => {
             }
         }
 
-        let inputPath = null;
-        let avatarPath = null;
-        let outputPath = null;
-
+        let inputPath = null, avatarPath = null, outputPath = null;
         try {
             outputPath = path.join(os.tmpdir(), `makegif_out_${Date.now()}.gif`);
             const scriptPath = path.join(__dirname, "makegif.py");
 
             if (mediaUrl) {
-                // IMAGE/GIF mode
                 inputPath = await downloadToTemp(mediaUrl, mediaExt);
                 await new Promise((resolve, reject) => {
                     const args = ["image", inputPath, outputPath];
@@ -682,13 +639,11 @@ client.on("messageCreate", async (message) => {
                     });
                 });
             } else {
-                // TEXT MESSAGE mode
-                const msgText = targetMsg.content || "[no text]";
-                const author = targetMsg.author;
+                const msgText  = targetMsg.content || "[no text]";
+                const author   = targetMsg.author;
                 const username = targetMsg.member?.displayName || author.username;
                 const avatarUrl = author.displayAvatarURL({ extension: "png", size: 128 });
                 avatarPath = await downloadToTemp(avatarUrl, ".png");
-
                 await new Promise((resolve, reject) => {
                     const args = [scriptPath, "text", outputPath, username, avatarPath, msgText];
                     require("child_process").execFile("python3", args, { timeout: 30000 }, (err, stdout, stderr) => {
@@ -704,13 +659,14 @@ client.on("messageCreate", async (message) => {
             console.error("b!makegif error:", err);
             await message.reply(`❌ Failed to make GIF: \`${err.message}\``);
         } finally {
-            if (inputPath) fs.unlink(inputPath, () => {});
+            if (inputPath)  fs.unlink(inputPath,  () => {});
             if (avatarPath) fs.unlink(avatarPath, () => {});
             if (outputPath) fs.unlink(outputPath, () => {});
         }
         return;
     }
 
+    // ── Owner-only commands below ──────────────────────────────────────
     if (!OWNERS.includes(message.author.id)) return;
 
     /* --- b!help --- */
@@ -720,149 +676,58 @@ client.on("messageCreate", async (message) => {
             .setTitle("♡ Owner Commands ♡")
             .setDescription("All commands below are **owner-only**.")
             .addFields(
-                {
-                    name: "b!help",
-                    value: "Shows this list of all commands.",
-                    inline: false,
-                },
-                {
-                    name: "b!status",
-                    value: "Shows the bot's current status, ping, uptime, and start time.",
-                    inline: false,
-                },
-                {
-                    name: "b!restart",
-                    value: "Restarts the bot. It will come back online automatically in a few seconds.",
-                    inline: false,
-                },
-                {
-                    name: "b!stop",
-                    value: "Stops the bot. It will come back online automatically in a few seconds.",
-                    inline: false,
-                },
-                {
-                    name: "b!maintenance on/off",
-                    value: "Toggles maintenance mode. While on, verification is paused and users are told to try again later.",
-                    inline: false,
-                },
-                {
-                    name: "b!antinuke on/off",
-                    value: "Toggles antinuke protection. If anyone mass-bans or mass-kicks 5+ members in 10 seconds, their roles are stripped and owners are alerted.",
-                    inline: false,
-                },
-                {
-                    name: "b!lock",
-                    value: "Locks the current channel so only staff can send messages.",
-                    inline: false,
-                },
-                {
-                    name: "b!unlock",
-                    value: "Unlocks the current channel and restores normal messaging.",
-                    inline: false,
-                },
-                {
-                    name: "b!changestatus",
-                    value: "React with 🟢 Online, 🔴 Do Not Disturb, or ⚫ Invisible to change status. Auto-deletes.",
-                    inline: false,
-                },
-                {
-                    name: "b!notifications",
-                    value: "Toggle DM notifications on/off for each owner by reacting with 1️⃣ 2️⃣ 3️⃣.",
-                    inline: false,
-                },
-                {
-                    name: "b!testdms",
-                    value: "Sends a test DM only to you — only works if your notifications are on.",
-                    inline: false,
-                },
-                {
-                    name: "b!crashtest",
-                    value: "Sends all 3 test DMs to owners (restart, crash, internal error).",
-                    inline: false,
-                },
-                {
-                    name: "b!savage on/off",
-                    value: "Toggles savage mode. When ON, the bot roasts anyone who pings it.",
-                    inline: false,
-                },
-                {
-                    name: "b!roast @member",
-                    value: "Roasts the mentioned member. Deletes your command message. 1 in 6 chance of a rare extra spicy roast.",
-                    inline: false,
-                },
-                {
-                    name: "b!ban @member|userid [message]",
-                    value: "Bans by @mention or raw user ID. Anything after the target gets DMed to them before the ban. Works even if they're not in the server.",
-                    inline: false,
-                },
-                {
-                    name: "b!makegif [caption]",
-                    value: "Reply to any image or GIF with this command to convert it to a GIF. Optionally add a caption — use `b!makegif [who tf is this guy]` and it'll be stamped above the image in bold white text. Works on both static images and animated GIFs.",
-                    inline: false,
-                },
+                { name: "b!help",                          value: "Shows this list.", inline: false },
+                { name: "b!status",                        value: "Bot status, ping, uptime.", inline: false },
+                { name: "b!restart",                       value: "Restarts the bot.", inline: false },
+                { name: "b!stop",                          value: "Stops the bot.", inline: false },
+                { name: "b!maintenance on/off",            value: "Toggles maintenance mode.", inline: false },
+                { name: "b!antinuke on/off",               value: "Toggles antinuke protection.", inline: false },
+                { name: "b!lock",                          value: "Locks the current channel.", inline: false },
+                { name: "b!unlock",                        value: "Unlocks the current channel.", inline: false },
+                { name: "b!changestatus",                  value: "Change bot status via react.", inline: false },
+                { name: "b!notifications",                 value: "Toggle DM notifications per owner.", inline: false },
+                { name: "b!testdms",                       value: "Sends a test DM to you.", inline: false },
+                { name: "b!crashtest",                     value: "Sends all 3 test DMs to owners.", inline: false },
+                { name: "b!savage on/off",                 value: "Toggles savage mode.", inline: false },
+                { name: "b!roast @member",                 value: "Roasts the mentioned member.", inline: false },
+                { name: "b!ban @member|userid [message]",  value: "Bans by mention or user ID.", inline: false },
+                { name: "b!makegif [caption]",             value: "Reply to image/GIF to convert it to a GIF.", inline: false },
+                { name: "b!reactionroles",                 value: "Posts the 3 reaction role embeds (gender, age, region) in the roles channel.", inline: false },
             )
             .setFooter({ text: "Only server owners can use these commands" })
             .setTimestamp();
-
         await message.reply({ embeds: [embed] });
     }
 
     /* --- b!status --- */
     if (content === "b!status") {
-        const uptime = formatUptime(Date.now() - startTime);
-        const ping = client.ws.ping;
-        const startedAt = new Date(startTime).toLocaleString("en-US", {
-            timeZone: "UTC",
-        });
-
         const embed = new EmbedBuilder()
             .setColor("#ffc0cb")
             .setTitle("🤖 Bot Status")
             .addFields(
-                { name: "🟢 Status", value: "Online", inline: true },
-                { name: "📶 Ping", value: `${ping}ms`, inline: true },
-                { name: "⏱️ Uptime", value: uptime, inline: true },
-                {
-                    name: "🕐 Started At",
-                    value: `${startedAt} UTC`,
-                    inline: false,
-                },
-                {
-                    name: "🔧 Maintenance",
-                    value: maintenanceMode ? "🔴 ON" : "🟢 OFF",
-                    inline: true,
-                },
-                {
-                    name: "🛡️ Antinuke",
-                    value: antinukeEnabled ? "🟢 ON" : "🔴 OFF",
-                    inline: true,
-                },
+                { name: "🟢 Status",      value: "Online",                                     inline: true  },
+                { name: "📶 Ping",        value: `${client.ws.ping}ms`,                        inline: true  },
+                { name: "⏱️ Uptime",      value: formatUptime(Date.now() - startTime),          inline: true  },
+                { name: "🕐 Started At",  value: `${new Date(startTime).toLocaleString("en-US", { timeZone: "UTC" })} UTC`, inline: false },
+                { name: "🔧 Maintenance", value: maintenanceMode ? "🔴 ON" : "🟢 OFF",          inline: true  },
+                { name: "🛡️ Antinuke",   value: antinukeEnabled ? "🟢 ON" : "🔴 OFF",          inline: true  },
             )
             .setFooter({ text: "Owner-only command" })
             .setTimestamp();
-
         await message.reply({ embeds: [embed] });
     }
 
     /* --- b!restart --- */
     if (content === "b!restart") {
-        await message.reply(
-            "🔄 Restarting bot... it will be back online in a few seconds.",
-        );
-        await dmOwners(
-            "🔄 **Bot is restarting** — triggered manually by an owner.",
-        );
+        await message.reply("🔄 Restarting bot... it will be back online in a few seconds.");
+        await dmOwners("🔄 **Bot is restarting** — triggered manually by an owner.");
         setTimeout(() => process.exit(0), 2000);
     }
 
     /* --- b!stop --- */
     if (content === "b!stop") {
-        await message.reply(
-            "🛑 Stopping bot... it will come back online automatically in a few seconds.",
-        );
-        await dmOwners(
-            "🛑 **Bot was stopped** — triggered manually by an owner. Coming back shortly.",
-        );
+        await message.reply("🛑 Stopping bot... it will come back online automatically in a few seconds.");
+        await dmOwners("🛑 **Bot was stopped** — triggered manually by an owner. Coming back shortly.");
         setTimeout(() => process.exit(0), 2000);
     }
 
@@ -871,17 +736,12 @@ client.on("messageCreate", async (message) => {
         maintenanceMode = content.endsWith("on");
         const embed = new EmbedBuilder()
             .setColor("#ffc0cb")
-            .setDescription(
-                maintenanceMode
-                    ? "🔧 **Maintenance mode ON** — verification is paused. Users will be told to try again later."
-                    : "✅ **Maintenance mode OFF** — verification is back to normal.",
-            )
+            .setDescription(maintenanceMode
+                ? "🔧 **Maintenance mode ON** — verification is paused."
+                : "✅ **Maintenance mode OFF** — verification is back to normal.")
             .setTimestamp();
         await message.reply({ embeds: [embed] });
-        await dmOwners(
-            `🔧 **Maintenance mode ${maintenanceMode ? "enabled" : "disabled"}** by an owner.`,
-        );
-        console.log(`Maintenance mode: ${maintenanceMode}`);
+        await dmOwners(`🔧 **Maintenance mode ${maintenanceMode ? "enabled" : "disabled"}** by an owner.`);
     }
 
     /* --- b!antinuke --- */
@@ -889,101 +749,44 @@ client.on("messageCreate", async (message) => {
         antinukeEnabled = content.endsWith("on");
         const embed = new EmbedBuilder()
             .setColor("#ffc0cb")
-            .setDescription(
-                antinukeEnabled
-                    ? "🛡️ **Antinuke ON** — I'll automatically strip roles from anyone who mass-bans or mass-kicks 5+ members in 10 seconds."
-                    : "⚠️ **Antinuke OFF** — mass action protection is disabled.",
-            )
+            .setDescription(antinukeEnabled
+                ? "🛡️ **Antinuke ON** — roles stripped on mass ban/kick."
+                : "⚠️ **Antinuke OFF** — mass action protection is disabled.")
             .setTimestamp();
         await message.reply({ embeds: [embed] });
-        console.log(`Antinuke: ${antinukeEnabled}`);
     }
 
     /* --- b!lock --- */
     if (content === "b!lock") {
-        console.log(
-            `b!lock triggered by ${message.author.tag} in #${message.channel.name}`,
-        );
         try {
-            await message.channel.permissionOverwrites.edit(
-                message.guild.roles.everyone,
-                { SendMessages: false },
-            );
-            const verifiedRole =
-                message.guild.roles.cache.get(VERIFIED_ROLE_ID);
-            if (verifiedRole) {
-                await message.channel.permissionOverwrites.edit(verifiedRole, {
-                    SendMessages: false,
-                });
+            await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: false });
+            const vr = message.guild.roles.cache.get(VERIFIED_ROLE_ID);
+            if (vr) await message.channel.permissionOverwrites.edit(vr, { SendMessages: false });
+            for (const id of STAFF_ROLE_IDS) {
+                const sr = message.guild.roles.cache.get(id);
+                if (sr) await message.channel.permissionOverwrites.edit(sr, { SendMessages: true });
             }
-            for (const roleId of STAFF_ROLE_IDS) {
-                const staffRole = message.guild.roles.cache.get(roleId);
-                if (staffRole)
-                    await message.channel.permissionOverwrites.edit(staffRole, {
-                        SendMessages: true,
-                    });
-            }
-            console.log("Lock successful");
-            const embed = new EmbedBuilder()
-                .setColor("#ff0000")
-                .setDescription(
-                    "🔒 **Channel locked** — only staff can send messages here.",
-                )
-                .setTimestamp();
-            try {
-                await message.channel.send({ embeds: [embed] });
-            } catch (_) {}
+            const embed = new EmbedBuilder().setColor("#ff0000").setDescription("🔒 **Channel locked** — only staff can send messages here.").setTimestamp();
+            await message.channel.send({ embeds: [embed] });
         } catch (err) {
-            console.error("Lock failed:", err.message);
-            try {
-                await message.author.send(
-                    `❌ **b!lock failed:**\n\`\`\`${err.message}\`\`\``,
-                );
-            } catch (_) {}
+            await message.author.send(`❌ **b!lock failed:**\n\`\`\`${err.message}\`\`\``).catch(() => {});
         }
     }
 
     /* --- b!unlock --- */
     if (content === "b!unlock") {
-        console.log(
-            `b!unlock triggered by ${message.author.tag} in #${message.channel.name}`,
-        );
         try {
-            await message.channel.permissionOverwrites.edit(
-                message.guild.roles.everyone,
-                { SendMessages: null },
-            );
-            const verifiedRole =
-                message.guild.roles.cache.get(VERIFIED_ROLE_ID);
-            if (verifiedRole) {
-                await message.channel.permissionOverwrites.edit(verifiedRole, {
-                    SendMessages: null,
-                });
+            await message.channel.permissionOverwrites.edit(message.guild.roles.everyone, { SendMessages: null });
+            const vr = message.guild.roles.cache.get(VERIFIED_ROLE_ID);
+            if (vr) await message.channel.permissionOverwrites.edit(vr, { SendMessages: null });
+            for (const id of STAFF_ROLE_IDS) {
+                const sr = message.guild.roles.cache.get(id);
+                if (sr) await message.channel.permissionOverwrites.edit(sr, { SendMessages: null });
             }
-            for (const roleId of STAFF_ROLE_IDS) {
-                const staffRole = message.guild.roles.cache.get(roleId);
-                if (staffRole)
-                    await message.channel.permissionOverwrites.edit(staffRole, {
-                        SendMessages: null,
-                    });
-            }
-            console.log("Unlock successful");
-            const embed = new EmbedBuilder()
-                .setColor("#00ff00")
-                .setDescription(
-                    "🔓 **Channel unlocked** — everyone can send messages again.",
-                )
-                .setTimestamp();
-            try {
-                await message.channel.send({ embeds: [embed] });
-            } catch (_) {}
+            const embed = new EmbedBuilder().setColor("#00ff00").setDescription("🔓 **Channel unlocked** — everyone can send messages again.").setTimestamp();
+            await message.channel.send({ embeds: [embed] });
         } catch (err) {
-            console.error("Unlock failed:", err.message);
-            try {
-                await message.author.send(
-                    `❌ **b!unlock failed:**\n\`\`\`${err.message}\`\`\``,
-                );
-            } catch (_) {}
+            await message.author.send(`❌ **b!unlock failed:**\n\`\`\`${err.message}\`\`\``).catch(() => {});
         }
     }
 
@@ -992,27 +795,17 @@ client.on("messageCreate", async (message) => {
         const embed = new EmbedBuilder()
             .setColor("#ffc0cb")
             .setTitle("♡ Change Bot Status ♡")
-            .setDescription(
-                "🟢 — **Online**\n" +
-                    "🔴 — **Do Not Disturb**\n" +
-                    "⚫ — **Invisible (Offline)**\n\n" +
-                    "React below to change the status. This message will delete itself after.",
-            )
-            .setFooter({ text: "Owner-only • Reacts once then disappears" });
-
+            .setDescription("🟢 — **Online**\n🔴 — **Do Not Disturb**\n⚫ — **Invisible (Offline)**\n\nReact below to change.")
+            .setFooter({ text: "Owner-only • Auto-deletes after 60s" });
         const statusMsg = await message.channel.send({ embeds: [embed] });
         statusMenuMessageId = statusMsg.id;
-
         await statusMsg.react("🟢");
         await statusMsg.react("🔴");
         await statusMsg.react("⚫");
-
         setTimeout(async () => {
             if (statusMenuMessageId === statusMsg.id) {
                 statusMenuMessageId = null;
-                try {
-                    await statusMsg.delete();
-                } catch (_) {}
+                try { await statusMsg.delete(); } catch (_) {}
             }
         }, 60000);
     }
@@ -1022,28 +815,20 @@ client.on("messageCreate", async (message) => {
         const embed = await buildNotifyEmbed();
         const notifyMsg = await message.channel.send({ embeds: [embed] });
         notifyMenuMessageId = notifyMsg.id;
-        for (const emoji of OWNER_TOGGLE_EMOJIS) {
-            await notifyMsg.react(emoji);
-        }
+        for (const emoji of OWNER_TOGGLE_EMOJIS) await notifyMsg.react(emoji);
     }
 
     /* --- b!testdms --- */
     if (content === "b!testdms") {
         if (!notifyPrefs[message.author.id]) {
-            await message.reply(
-                "❌ Your notifications are currently **off**. Turn them on with `b!notifications` first.",
-            );
+            await message.reply("❌ Your notifications are currently **off**. Turn them on with `b!notifications` first.");
             return;
         }
         try {
-            await message.author.send(
-                `🔔 **THIS IS A TEST**\nIf you received this, your DM notifications are working correctly!`,
-            );
+            await message.author.send("🔔 **THIS IS A TEST**\nIf you received this, your DM notifications are working correctly!");
             await message.reply("✅ Test DM sent to you!");
-        } catch (err) {
-            await message.reply(
-                "❌ Could not send you a DM — make sure your DMs are open.",
-            );
+        } catch {
+            await message.reply("❌ Could not send you a DM — make sure your DMs are open.");
         }
     }
 
@@ -1052,160 +837,188 @@ client.on("messageCreate", async (message) => {
         savageMode = content.endsWith("on");
         const embed = new EmbedBuilder()
             .setColor("#ffc0cb")
-            .setDescription(
-                savageMode
-                    ? "😈 **Savage mode ON** — I'll roast anyone who pings me."
-                    : "😇 **Savage mode OFF** — I'll ignore pings like a normal bot.",
-            )
+            .setDescription(savageMode
+                ? "😈 **Savage mode ON** — I'll roast anyone who pings me."
+                : "😇 **Savage mode OFF** — I'll ignore pings like a normal bot.")
             .setTimestamp();
         await message.reply({ embeds: [embed] });
-        console.log(`Savage mode: ${savageMode}`);
     }
 
     /* --- b!crashtest --- */
     if (content === "b!crashtest") {
         await message.reply("📨 Sending all 3 test DMs to owners now...");
-        await dmOwners(
-            `✅ **[TEST] Bot Restart Notification**\nThis is what you'll receive every time the bot starts up or restarts successfully.`,
-        );
-        await dmOwners(
-            `⚠️ **[TEST] Bot Crash Notification**\n\`\`\`Error: Something went terribly wrong!\`\`\`\nThis is what you'll receive if the bot crashes. It will restart automatically.`,
-        );
-        await dmOwners(
-            `⚠️ **[TEST] Internal Error Notification**\n\`\`\`UnhandledPromiseRejection: Cannot read properties of undefined\`\`\`\nThis is what you'll receive if an internal error occurs inside the bot.`,
-        );
+        await dmOwners("✅ **[TEST] Bot Restart Notification**\nThis is what you'll receive every time the bot starts up or restarts successfully.");
+        await dmOwners("⚠️ **[TEST] Bot Crash Notification**\n\`\`\`Error: Something went terribly wrong!\`\`\`\nThis is what you'll receive if the bot crashes. It will restart automatically.");
+        await dmOwners("⚠️ **[TEST] Internal Error Notification**\n\`\`\`UnhandledPromiseRejection: Cannot read properties of undefined\`\`\`");
         await message.reply("✅ All 3 test DMs sent to all owners!");
+    }
+
+    /* =========================
+       b!reactionroles
+       Posts all 3 kawaii reaction role embeds in the roles channel.
+    ========================= */
+    if (content === "b!reactionroles") {
+        try {
+            const rrChannel = await client.channels.fetch(REACTION_ROLES_CHANNEL_ID);
+            await postReactionRoleEmbeds(rrChannel, rrChannel.guild);
+            await message.reply("✅ Reaction role embeds posted in <#" + REACTION_ROLES_CHANNEL_ID + ">!");
+        } catch (err) {
+            console.error("b!reactionroles error:", err);
+            await message.reply(`❌ Failed to post reaction roles: \`${err.message}\``);
+        }
     }
 });
 
 /* =========================
-   REACTION HANDLER
+   REACTION ADD HANDLER
 ========================= */
 client.on("messageReactionAdd", async (reaction, user) => {
     if (user.bot) return;
 
     try {
-        if (reaction.partial) await reaction.fetch();
+        if (reaction.partial)         await reaction.fetch();
         if (reaction.message.partial) await reaction.message.fetch();
 
+        const msgId   = reaction.message.id;
+        const emojiId = reaction.emoji.id; // null for standard unicode emojis
+
         /* --- Notification toggle menu --- */
-        if (
-            notifyMenuMessageId &&
-            reaction.message.id === notifyMenuMessageId &&
-            OWNERS.includes(user.id)
-        ) {
-            const emoji = reaction.emoji.name;
-            const idx = OWNER_TOGGLE_EMOJIS.indexOf(emoji);
+        if (notifyMenuMessageId && msgId === notifyMenuMessageId && OWNERS.includes(user.id)) {
+            const idx = OWNER_TOGGLE_EMOJIS.indexOf(reaction.emoji.name);
             if (idx !== -1) {
                 const targetId = OWNERS[idx];
                 notifyPrefs[targetId] = !notifyPrefs[targetId];
                 const updatedEmbed = await buildNotifyEmbed();
                 await reaction.message.edit({ embeds: [updatedEmbed] });
-                try {
-                    await reaction.users.remove(user.id);
-                } catch (_) {}
-                console.log(
-                    `Notifications ${notifyPrefs[targetId] ? "enabled" : "disabled"} for ${targetId}`,
-                );
+                try { await reaction.users.remove(user.id); } catch (_) {}
             }
             return;
         }
 
         /* --- Status change menu --- */
-        if (
-            statusMenuMessageId &&
-            reaction.message.id === statusMenuMessageId &&
-            OWNERS.includes(user.id)
-        ) {
-            const emoji = reaction.emoji.name;
-            const chosen = STATUS_EMOJIS[emoji];
+        if (statusMenuMessageId && msgId === statusMenuMessageId && OWNERS.includes(user.id)) {
+            const chosen = STATUS_EMOJIS[reaction.emoji.name];
             if (chosen) {
-                client.user.setPresence({
-                    status: chosen.status,
-                    activities: [
-                        {
-                            name: "Verification in progress on /banilla",
-                            type: 0,
-                        },
-                    ],
-                });
+                client.user.setPresence({ status: chosen.status, activities: [{ name: "Verification in progress on /banilla", type: 0 }] });
                 statusMenuMessageId = null;
-                try {
-                    await reaction.message.delete();
-                } catch (_) {}
-                const confirmEmbed = new EmbedBuilder()
-                    .setColor("#ffc0cb")
-                    .setDescription(
-                        `${emoji} Bot status changed to **${chosen.label}**`,
-                    )
-                    .setTimestamp();
-                const confirm = await reaction.message.channel.send({
-                    embeds: [confirmEmbed],
-                });
+                try { await reaction.message.delete(); } catch (_) {}
+                const confirmEmbed = new EmbedBuilder().setColor("#ffc0cb").setDescription(`${reaction.emoji.name} Bot status changed to **${chosen.label}**`).setTimestamp();
+                const confirm = await reaction.message.channel.send({ embeds: [confirmEmbed] });
                 setTimeout(() => confirm.delete().catch(() => {}), 5000);
             }
             return;
         }
 
+        /* =========================
+           REACTION ROLES — ADD ROLE
+        ========================= */
+        if (emojiId) {
+            const guild  = reaction.message.guild;
+            const member = await guild.members.fetch(user.id).catch(() => null);
+            if (!member) return;
+
+            // Gender (exclusive)
+            if (msgId === rrGenderMessageId && GENDER_ROLES[emojiId]) {
+                const { roleId } = GENDER_ROLES[emojiId];
+                for (const [, d] of Object.entries(GENDER_ROLES)) {
+                    if (d.roleId !== roleId && member.roles.cache.has(d.roleId))
+                        await member.roles.remove(d.roleId).catch(() => {});
+                }
+                await member.roles.add(roleId).catch(() => {});
+                return;
+            }
+
+            // Age (exclusive)
+            if (msgId === rrAgeMessageId && AGE_ROLES[emojiId]) {
+                const { roleId } = AGE_ROLES[emojiId];
+                for (const [, d] of Object.entries(AGE_ROLES)) {
+                    if (d.roleId !== roleId && member.roles.cache.has(d.roleId))
+                        await member.roles.remove(d.roleId).catch(() => {});
+                }
+                await member.roles.add(roleId).catch(() => {});
+                return;
+            }
+
+            // Region (exclusive)
+            if (msgId === rrRegionMessageId && REGION_ROLES[emojiId]) {
+                const { roleId } = REGION_ROLES[emojiId];
+                for (const [, d] of Object.entries(REGION_ROLES)) {
+                    if (d.roleId !== roleId && member.roles.cache.has(d.roleId))
+                        await member.roles.remove(d.roleId).catch(() => {});
+                }
+                await member.roles.add(roleId).catch(() => {});
+                return;
+            }
+        }
+
         /* --- Verification system --- */
-        if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
+        if (msgId !== VERIFY_MESSAGE_ID) return;
 
         if (maintenanceMode) {
-            try {
-                await user.send(
-                    "🔧 **Verification is temporarily paused for maintenance.** Please try again in a little while!",
-                );
-            } catch (_) {}
+            try { await user.send("🔧 **Verification is temporarily paused for maintenance.** Please try again in a little while!"); } catch (_) {}
             return;
         }
 
-        const guild = reaction.message.guild;
+        if (reaction.emoji.id !== VERIFY_EMOJI_ID) return;
+
+        const guild  = reaction.message.guild;
         const member = await guild.members.fetch(user.id);
-
-        const isVerifyEmoji = reaction.emoji.id === VERIFY_EMOJI_ID;
-        if (!isVerifyEmoji) return;
-
         if (!member.roles.cache.has(VERIFIED_ROLE_ID)) {
             await member.roles.add(VERIFIED_ROLE_ID);
-            if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) {
-                await member.roles.remove(UNVERIFIED_ROLE_ID);
-            }
-            try {
-                await user.send("✅ You are now verified!");
-            } catch (_) {}
+            if (member.roles.cache.has(UNVERIFIED_ROLE_ID)) await member.roles.remove(UNVERIFIED_ROLE_ID);
+            try { await user.send("✅ You are now verified!"); } catch (_) {}
             console.log(`✅ Verified ${user.tag}`);
         }
     } catch (err) {
-        console.error("Reaction handler error:", err);
+        console.error("Reaction add handler error:", err);
     }
 });
 
 /* =========================
-   REACTION REMOVE — UNVERIFY
+   REACTION REMOVE HANDLER
 ========================= */
 client.on("messageReactionRemove", async (reaction, user) => {
     if (user.bot) return;
 
     try {
-        if (reaction.partial) await reaction.fetch();
+        if (reaction.partial)         await reaction.fetch();
         if (reaction.message.partial) await reaction.message.fetch();
 
-        if (reaction.message.id !== VERIFY_MESSAGE_ID) return;
+        const msgId   = reaction.message.id;
+        const emojiId = reaction.emoji.id;
 
-        const isVerifyEmoji = reaction.emoji.id === VERIFY_EMOJI_ID;
-        if (!isVerifyEmoji) return;
+        /* =========================
+           REACTION ROLES — REMOVE ROLE
+        ========================= */
+        if (emojiId) {
+            const guild  = reaction.message.guild;
+            const member = await guild.members.fetch(user.id).catch(() => null);
+            if (!member) return;
 
-        const guild = reaction.message.guild;
+            if (msgId === rrGenderMessageId && GENDER_ROLES[emojiId]) {
+                await member.roles.remove(GENDER_ROLES[emojiId].roleId).catch(() => {});
+                return;
+            }
+            if (msgId === rrAgeMessageId && AGE_ROLES[emojiId]) {
+                await member.roles.remove(AGE_ROLES[emojiId].roleId).catch(() => {});
+                return;
+            }
+            if (msgId === rrRegionMessageId && REGION_ROLES[emojiId]) {
+                await member.roles.remove(REGION_ROLES[emojiId].roleId).catch(() => {});
+                return;
+            }
+        }
+
+        /* --- Unverify --- */
+        if (msgId !== VERIFY_MESSAGE_ID) return;
+        if (reaction.emoji.id !== VERIFY_EMOJI_ID) return;
+
+        const guild  = reaction.message.guild;
         const member = await guild.members.fetch(user.id);
-
         if (member.roles.cache.has(VERIFIED_ROLE_ID)) {
             await member.roles.remove(VERIFIED_ROLE_ID);
             await member.roles.add(UNVERIFIED_ROLE_ID);
-            try {
-                await user.send(
-                    "❌ You have been unverified. React again to re-verify.",
-                );
-            } catch (_) {}
+            try { await user.send("❌ You have been unverified. React again to re-verify."); } catch (_) {}
             console.log(`❌ Unverified ${user.tag}`);
         }
     } catch (err) {
