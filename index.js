@@ -943,6 +943,18 @@ client.on("interactionCreate", async (interaction) => {
             },
         ];
 
+        // Give the bot itself access (required when @everyone denies ViewChannel)
+        overwrites.push({
+            id: client.user.id,
+            allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory,
+                PermissionsBitField.Flags.ManageMessages,
+                PermissionsBitField.Flags.ManageChannels,
+            ],
+        });
+
         // Give owners access
         for (const ownerId of OWNERS) {
             overwrites.push({
