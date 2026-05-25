@@ -883,12 +883,12 @@ client.on("messageCreate", async (message) => {
             .setTitle("♡ uh oh.. someone's in trouble ♡")
             .setDescription(
                 `*₊˚⊹ so you've been a little naughty huh ⊹˚₊*\n\n` +
-                `maybe u misbehaved,, maybe u said something u really shouldn't have,, maybe u just need to grovel a lil 🎀\n\n` +
-                `if u genuinely think u deserve forgiveness (u probably don't but okay) u can file ur little appeal below and plead ur case ♡\n\n` +
-                `be **honest**. be **sincere**. and maybe,, just maybe,, u'll be forgiven 🩷\n\n` +
-                `||or not. we'll see bestie.||`
+                `u misbehaved,, said something u really shouldn't have,, and now u have to earn ur way back into his good graces 🎀\n\n` +
+                `if u genuinely think u deserve forgiveness (u probably don't,, but go ahead and beg~) u can file ur little appeal below ♡\n\n` +
+                `be **honest**. be **desperate**. grovel. and maybe,, just maybe,, he'll let it go 🩷\n\n` +
+                `||spoiler: only he decides. not me, not anyone else. just him.||`
             )
-            .setFooter({ text: "♡ appeals are reviewed personally · forgiveness is not guaranteed ♡" })
+            .setFooter({ text: "♡ appeals are reviewed personally by him · forgiveness is entirely his call ♡" })
             .setTimestamp();
 
         const button = new ButtonBuilder()
@@ -922,7 +922,7 @@ client.on("interactionCreate", async (interaction) => {
         );
         if (existing) {
             return interaction.editReply({
-                content: `u already have an open appeal in ${existing} 🎀 go finish that one first!!`,
+                content: `u already have an open appeal in ${existing} 🎀 go finish groveling in that one first!!`,
             });
         }
 
@@ -988,25 +988,25 @@ client.on("interactionCreate", async (interaction) => {
             .setColor("#ffc0cb")
             .setTitle(`♡ ur appeal, ${user.displayName || user.username} ♡`)
             .setDescription(
-                `*ₓ˚. ୭ okay so u messed up ˚₊‧꩜ .*\n\n` +
-                `this is ur one chance to explain urself and maybe earn some forgiveness 🩷\n` +
-                `answer every question honestly — skipping or lying = instant denial bestie 🎀\n\n` +
+                `*ₓ˚. ୭ okay so u messed up bad ˚₊‧꩜ .*\n\n` +
+                `this is ur one shot to beg for his forgiveness 🩷\n` +
+                `answer every question honestly — skipping or lying = instant denial and u can explain that to him urself 🎀\n\n` +
                 `**① what exactly did u do wrong?**\n` +
-                `*(be specific, no sugarcoating, no excuses yet)*\n\n` +
-                `**② why did u think that was okay at the time lol**\n` +
-                `*(walk me through ur reasoning, as embarrassing as it is)*\n\n` +
+                `*(be specific, no sugarcoating, no excuses — he doesn't wanna hear it)*\n\n` +
+                `**② why did u think that was ever gonna be okay lol**\n` +
+                `*(walk through ur embarrassing little reasoning)*\n\n` +
                 `**③ do u actually understand why it was wrong?**\n` +
-                `*(and i mean ACTUALLY understand, not just saying what i wanna hear)*\n\n` +
-                `**④ why do u deserve forgiveness rn**\n` +
-                `*(this better be good)*\n\n` +
-                `**⑤ what are u gonna do differently going forward**\n` +
-                `*(give me specifics, not "i'll be better" 🙄)*\n\n` +
+                `*(ACTUALLY understand,, not just performing remorse)*\n\n` +
+                `**④ why do u deserve HIS forgiveness specifically**\n` +
+                `*(this better be genuinely good or don't bother)*\n\n` +
+                `**⑤ what are u gonna do differently**\n` +
+                `*(specifics only,, "i'll be better" is a dismissal)*\n\n` +
                 `**⑥ rate how naughty u were on a scale of 1-10**\n` +
-                `*(be honest with ur rating and explain it)*\n\n` +
-                `**⑦ anything else u wanna say in ur defense?**\n` +
-                `*(this is ur absolute last chance, choose ur words carefully 🩷)*`
+                `*(be brutally honest and explain the rating)*\n\n` +
+                `**⑦ beg. actually beg. this is ur last chance.**\n` +
+                `*(make it count,, he's the only one who can forgive u 🩷)*`
             )
-            .setFooter({ text: "♡ type ur answers below · be honest or it won't work ♡" })
+            .setFooter({ text: "♡ type ur answers below · only he decides ur fate ♡" })
             .setTimestamp();
 
         // Close button (owners only)
@@ -1023,13 +1023,13 @@ client.on("interactionCreate", async (interaction) => {
         const closeRow = new ActionRowBuilder().addComponents(acceptBtn, denyBtn);
 
         await ticketChannel.send({
-            content: `<@${user.id}> welcome to ur appeal channel 🩷 take ur time and answer everything below ↓`,
+            content: `<@${user.id}> welcome to ur little punishment chamber 🩷 answer everything below honestly — he's watching ↓`,
             embeds: [formEmbed],
             components: [closeRow],
         });
 
         await interaction.editReply({
-            content: `ur appeal is open in ${ticketChannel} 🎀 go answer the questions honestly!! good luck bestie u'll need it`,
+            content: `ur appeal is open in ${ticketChannel} 🎀 go grovel honestly and pray he's in a forgiving mood~`,
         });
 
         // Notify owners
@@ -1043,8 +1043,8 @@ client.on("interactionCreate", async (interaction) => {
 
     /* --- Accept appeal --- */
     if (interaction.customId.startsWith("appeal_accept:")) {
-        if (!OWNERS.includes(interaction.user.id)) {
-            return interaction.reply({ content: "only owners can accept appeals 🎀", ephemeral: true });
+        if (interaction.user.id !== "791838432573521950") {
+            return interaction.reply({ content: "only he gets to forgive. that's not u. 🎀", ephemeral: true });
         }
 
         const targetId = interaction.customId.split(":")[1];
@@ -1055,11 +1055,11 @@ client.on("interactionCreate", async (interaction) => {
             .setColor("#77dd77")
             .setTitle("♡ appeal accepted ♡")
             .setDescription(
-                `*₊˚⊹ ur forgiven this time ⊹˚₊*\n\n` +
+                `*₊˚⊹ he forgave u. don't waste it. ⊹˚₊*\n\n` +
                 `<@${targetId}> ur appeal has been accepted 🩷\n` +
-                `don't make me regret it bestie,, this channel will close in **10 seconds** 🎀`
+                `consider urself very lucky,, this channel closes in **10 seconds** 🎀`
             )
-            .setFooter({ text: "♡ forgiven · don't mess up again ♡" })
+            .setFooter({ text: "♡ forgiven by him · don't make him regret it ♡" })
             .setTimestamp();
 
         await interaction.editReply({ embeds: [closeEmbed] });
@@ -1069,7 +1069,7 @@ client.on("interactionCreate", async (interaction) => {
             const targetUser = await client.users.fetch(targetId);
             await targetUser.send(
                 `💌 **ur appeal was accepted!!**\n\n` +
-                `ur forgiven this time 🩷 don't make the same mistake again bestie or next time might not go so well 🎀`
+                `ur forgiven this time 🩷 he gave u grace,, don't waste it or next time he won't be so lenient 🎀`
             );
         } catch (_) {}
 
@@ -1084,8 +1084,8 @@ client.on("interactionCreate", async (interaction) => {
 
     /* --- Deny appeal --- */
     if (interaction.customId.startsWith("appeal_deny:")) {
-        if (!OWNERS.includes(interaction.user.id)) {
-            return interaction.reply({ content: "only owners can deny appeals 🎀", ephemeral: true });
+        if (interaction.user.id !== "791838432573521950") {
+            return interaction.reply({ content: "only he gets to deny. that's not u either. 🎀", ephemeral: true });
         }
 
         const targetId = interaction.customId.split(":")[1];
@@ -1095,11 +1095,11 @@ client.on("interactionCreate", async (interaction) => {
             .setColor("#ff6b6b")
             .setTitle("♡ appeal denied ♡")
             .setDescription(
-                `*₊˚⊹ yeah no. ⊹˚₊*\n\n` +
+                `*₊˚⊹ he said no. ⊹˚₊*\n\n` +
                 `<@${targetId}> ur appeal has been denied 🙂\n` +
-                `better luck next time i guess,, this channel closes in **10 seconds** 🎀`
+                `u didn't earn it,, this channel closes in **10 seconds** 🎀`
             )
-            .setFooter({ text: "♡ denied · try being less naughty next time ♡" })
+            .setFooter({ text: "♡ denied by him · maybe try harder next time ♡" })
             .setTimestamp();
 
         await interaction.editReply({ embeds: [closeEmbed] });
@@ -1109,7 +1109,7 @@ client.on("interactionCreate", async (interaction) => {
             const targetUser = await client.users.fetch(targetId);
             await targetUser.send(
                 `💌 **ur appeal was denied.**\n\n` +
-                `yeah ur not forgiven rn 🙂 maybe reflect on what u did and try again later,, or just don't misbehave next time bestie 🎀`
+                `yeah ur not forgiven rn 🙂 he said no,, reflect on what u did and maybe next time he'll feel differently 🎀`
             );
         } catch (_) {}
 
