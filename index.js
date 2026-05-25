@@ -902,6 +902,70 @@ client.on("messageCreate", async (message) => {
 });
 
 /* =========================
+   CHANNEL LOG HELPER
+========================= */
+async function generateChannelLog(channel, verdict, staffUser, targetId) {
+    // Fetch up to 500 messages (Discord API max per fetch is 100, so we loop)
+    const allMessages = [];
+    let lastId = null;
+
+    while (true) {
+        const options = { limit: 100 };
+        if (lastId) options.before = lastId;
+        const fetched = await channel.messages.fetch(options).catch(() => null);
+        if (!fetched || fetched.size === 0) break;
+        allMessages.push(...fetched.values());
+        lastId = fetched.last().id;
+        if (fetched.size < 100) break;
+    }
+
+    // Sort oldest → newest
+    allMessages.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+
+    const lines = [
+        `═══════════════════════════════════════════════════════`,
+        `  APPEAL CHANNEL LOG`,
+        `═══════════════════════════════════════════════════════`,
+        `  Channel  : #${channel.name} (${channel.id})`,
+        `  Verdict  : ${verdict.toUpperCase()}`,
+        `  Decided by: ${staffUser.tag} (${staffUser.id})`,
+        `  Appellant : <@${targetId}> (${targetId})`,
+        `  Logged at : ${new Date().toUTCString()}`,
+        `  Total msgs: ${allMessages.length}`,
+        `═══════════════════════════════════════════════════════`,
+        ``,
+    ];
+
+    for (const msg of allMessages) {
+        const ts = new Date(msg.createdTimestamp).toISOString();
+        const author = `${msg.author.tag} (${msg.author.id})`;
+        let content = msg.content || "";
+
+        // Include embeds as a note
+        if (msg.embeds.length > 0) {
+            const embedTitles = msg.embeds.map((e) => e.title || "(embed)").join(", ");
+            content += content ? `  [embeds: ${embedTitles}]` : `[embeds: ${embedTitles}]`;
+        }
+
+        // Include attachments
+        if (msg.attachments.size > 0) {
+            const urls = [...msg.attachments.values()].map((a) => a.url).join(", ");
+            content += content ? `  [attachments: ${urls}]` : `[attachments: ${urls}]`;
+        }
+
+        lines.push(`[${ts}] ${author}`);
+        lines.push(`  ${content || "(no text content)"}`);
+        lines.push("");
+    }
+
+    lines.push(`═══════════════════════════════════════════════════════`);
+    lines.push(`  END OF LOG`);
+    lines.push(`═══════════════════════════════════════════════════════`);
+
+    return lines.join("\n");
+}
+
+/* =========================
    INTERACTION HANDLER
    (appeal ticket system)
 ========================= */
@@ -1073,6 +1137,21 @@ client.on("interactionCreate", async (interaction) => {
             );
         } catch (_) {}
 
+        // Generate and send channel log to the staff member who clicked accept
+        try {
+            const logText = await generateChannelLog(interaction.channel, "ACCEPTED", interaction.user, targetId);
+            const logBuffer = Buffer.from(logText, "utf-8");
+            const logAttachment = new AttachmentBuilder(logBuffer, {
+                name: `appeal-log-${interaction.channel.name}-${Date.now()}.txt`,
+            });
+            await interaction.user.send({
+                content: `📋 **Appeal log — ACCEPTED**\nHere's the full transcript for <#${interaction.channel.id}> before it closed.`,
+                files: [logAttachment],
+            });
+        } catch (logErr) {
+            console.error("Failed to send accept log:", logErr);
+        }
+
         // Delete channel after delay
         setTimeout(async () => {
             try { await interaction.channel.delete(); } catch (err) {
@@ -1112,6 +1191,21 @@ client.on("interactionCreate", async (interaction) => {
                 `yeah ur not forgiven rn 🙂 he said no,, reflect on what u did and maybe next time he'll feel differently 🎀`
             );
         } catch (_) {}
+
+        // Generate and send channel log to the staff member who clicked deny
+        try {
+            const logText = await generateChannelLog(interaction.channel, "DENIED", interaction.user, targetId);
+            const logBuffer = Buffer.from(logText, "utf-8");
+            const logAttachment = new AttachmentBuilder(logBuffer, {
+                name: `appeal-log-${interaction.channel.name}-${Date.now()}.txt`,
+            });
+            await interaction.user.send({
+                content: `📋 **Appeal log — DENIED**\nHere's the full transcript for <#${interaction.channel.id}> before it closed.`,
+                files: [logAttachment],
+            });
+        } catch (logErr) {
+            console.error("Failed to send deny log:", logErr);
+        }
 
         // Delete channel after delay
         setTimeout(async () => {
