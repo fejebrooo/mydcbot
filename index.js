@@ -7,6 +7,11 @@ const {
     AuditLogEvent,
     PermissionFlagsBits,
     AttachmentBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    ActionRowBuilder,
+    ChannelType,
+    PermissionsBitField,
 } = require("discord.js");
 const http = require("http");
 const https = require("https");
@@ -48,6 +53,11 @@ const OWNERS = [
 
 const DIVIDER_GIF_URL =
     "https://cdn.discordapp.com/attachments/1474114567238844567/1481664028915929210/IMG_0101.gif";
+
+// Appeal system — set this to the ID of the category where ticket channels should be created
+// Create a category in your server, right-click it → Copy ID, paste here
+// If you leave it as null, channels will be created without a category
+const APPEAL_CATEGORY_ID = null;
 
 const startTime = Date.now();
 
@@ -124,7 +134,7 @@ const ROASTS = [
     "genuinely mysterious how you have the ego of a 10 when you're operating at a solid 2",
     "you're not deep you're just confusing and that's not the same thing",
     "bro thinks he's a vibe. he's a warning.",
-    "you're the type to ruin a good thing just by touching it",
+    "you're the type of person to ruin a good thing just by touching it",
     "your personality has the shelf life of warm milk",
     "people have nightmares less annoying than you",
     "you're not built different you're just broken different",
@@ -179,8 +189,8 @@ const NUKE_WINDOW = 10000;
 const OWNER_TOGGLE_EMOJIS = ["1️⃣", "2️⃣", "3️⃣"];
 
 const STATUS_EMOJIS = {
-    "🟢": { status: "online",    label: "Online"            },
-    "🔴": { status: "dnd",       label: "Do Not Disturb"    },
+    "🟢": { status: "online",    label: "Online"             },
+    "🔴": { status: "dnd",       label: "Do Not Disturb"     },
     "⚫": { status: "invisible", label: "Invisible (Offline)" },
 };
 
@@ -189,31 +199,13 @@ const STATUS_EMOJIS = {
 ========================= */
 const REACTION_ROLES_CHANNEL_ID = "1502771453022699630";
 
-// Message IDs set after b!reactionroles posts them
 let rrGenderMessageId = null;
 let rrAgeMessageId    = null;
 let rrRegionMessageId = null;
 
-//
-// Emoji ID  →  { roleId, name }
-//
-// ORDER matches what you gave me:
-//   18+          :00DNSbow:     1502778001769631745  →  role 1502771231223582731
-//   15-17        :emoji_5:      1502778012213710949  →  role 1502771190526119936
-//   13-14        :DNSheartbow:  1502778033537417407  →  role 1502771141079732244
-//   south america :emoji_1:    1502778046304878744  →  role 1502770523179057292
-//   north america :emoji_2:    1502778059785502751  →  role 1502770341808701450
-//   australia    :ggbunnyfgg:   1502778101526958261  →  role 1502770017970946089
-//   africa       :ggbunnyfg~1:  1502778167423668484  →  role 1502769963545526523
-//   asia         :ggbunnyfg~2:  1502778184171520111  →  role 1502769868116725840
-//   europe       :ggbunnyfg:    1502778200974168244  →  role 1502769820418969761
-//   female       :emoji_6:      1502778219869507635  →  role 1502769746867781642
-//   male         :emoji_4:      1502778264693899334  →  role 1502769692190707882
-//
-
 const GENDER_ROLES = {
-    "1501488390925844540": { roleId: "1502769692190707882", name: "male",   emojiName: "emoji_6"  },
-    "1501488340875214908": { roleId: "1502769746867781642", name: "female", emojiName: "emoji_4"  },
+    "1501488390925844540": { roleId: "1502769692190707882", name: "male",   emojiName: "emoji_6" },
+    "1501488340875214908": { roleId: "1502769746867781642", name: "female", emojiName: "emoji_4" },
 };
 
 const AGE_ROLES = {
@@ -223,15 +215,17 @@ const AGE_ROLES = {
 };
 
 const REGION_ROLES = {
-    "1501488286735007814": { roleId: "1502770523179057292", name: "south america", emojiName: "emoji_1"    },
-    "1501488303256375338": { roleId: "1502770341808701450", name: "north america", emojiName: "emoji_2"    },
-    "1501488322046857286": { roleId: "1502770017970946089", name: "australia",     emojiName: "emoji_3"    },
-    "1502341368767582259": { roleId: "1502769963545526523", name: "africa",        emojiName: "ggbunnyfg"  },
-    "1502341151078744214": { roleId: "1502769868116725840", name: "asia",          emojiName: "ggbunnyfg"  },
+    "1501488286735007814": { roleId: "1502770523179057292", name: "south america", emojiName: "emoji_1"     },
+    "1501488303256375338": { roleId: "1502770341808701450", name: "north america", emojiName: "emoji_2"     },
+    "1501488322046857286": { roleId: "1502770017970946089", name: "australia",     emojiName: "emoji_3"     },
+    "1502341368767582259": { roleId: "1502769963545526523", name: "africa",        emojiName: "ggbunnyfg"   },
+    "1502341151078744214": { roleId: "1502769868116725840", name: "asia",          emojiName: "ggbunnyfg"   },
     "1502341755561971762": { roleId: "1502769820418969761", name: "europe",        emojiName: "DNSheartbow" },
 };
 
-/* Helper: returns the correct Discord emoji string, fetching from API if not cached */
+/* =========================
+   EMOJI HELPER
+========================= */
 async function emojiStr(guild, emojiId) {
     let e = guild.emojis.cache.get(emojiId);
     if (!e) {
@@ -241,12 +235,13 @@ async function emojiStr(guild, emojiId) {
     return e.animated ? `<a:${e.name}:${e.id}>` : `<:${e.name}:${e.id}>`;
 }
 
-/* Posts the 3 kawaii reaction role embeds */
+/* =========================
+   POST REACTION ROLE EMBEDS
+========================= */
 async function postReactionRoleEmbeds(channel, guild) {
-    // Force-fetch ALL guild emojis into cache first
     await guild.emojis.fetch();
 
-    // ── EMBED 1 — Gender ──────────────────────────────────────────────
+    // Gender
     const genderEmbed = new EmbedBuilder()
         .setColor("#ffc0cb")
         .setTitle("♡ gender ♡")
@@ -260,13 +255,12 @@ async function postReactionRoleEmbeds(channel, guild) {
 
     const genderMsg = await channel.send({ embeds: [genderEmbed] });
     rrGenderMessageId = genderMsg.id;
-
     for (const [emojiId] of Object.entries(GENDER_ROLES)) {
         const e = guild.emojis.cache.get(emojiId);
         if (e) await genderMsg.react(e);
     }
 
-    // ── EMBED 2 — Age ─────────────────────────────────────────────────
+    // Age
     const ageEmbed = new EmbedBuilder()
         .setColor("#ffc0cb")
         .setTitle("♡ age ♡")
@@ -281,13 +275,12 @@ async function postReactionRoleEmbeds(channel, guild) {
 
     const ageMsg = await channel.send({ embeds: [ageEmbed] });
     rrAgeMessageId = ageMsg.id;
-
     for (const [emojiId] of Object.entries(AGE_ROLES)) {
         const e = guild.emojis.cache.get(emojiId);
         if (e) await ageMsg.react(e);
     }
 
-    // ── EMBED 3 — Region ──────────────────────────────────────────────
+    // Region
     const regionEmbed = new EmbedBuilder()
         .setColor("#ffc0cb")
         .setTitle("♡ region ♡")
@@ -305,7 +298,6 @@ async function postReactionRoleEmbeds(channel, guild) {
 
     const regionMsg = await channel.send({ embeds: [regionEmbed] });
     rrRegionMessageId = regionMsg.id;
-
     for (const [emojiId] of Object.entries(REGION_ROLES)) {
         const e = guild.emojis.cache.get(emojiId);
         if (e) await regionMsg.react(e);
@@ -596,7 +588,7 @@ client.on("messageCreate", async (message) => {
                 .setColor("#ff0000")
                 .setTitle("🔨 Member Banned")
                 .addFields(
-                    { name: "User",               value: targetUser ? `${targetUser.tag} (<@${targetId}>)` : `<@${targetId}>`, inline: true },
+                    { name: "User",                value: targetUser ? `${targetUser.tag} (<@${targetId}>)` : `<@${targetId}>`, inline: true },
                     { name: "Message sent to them", value: dmMessage || "None", inline: false },
                 )
                 .setTimestamp();
@@ -610,9 +602,9 @@ client.on("messageCreate", async (message) => {
 
     /* --- b!makegif --- */
     if (content.startsWith("b!makegif")) {
-        const afterCmd   = rawContent.slice("b!makegif".length).trim();
+        const afterCmd     = rawContent.slice("b!makegif".length).trim();
         const bracketMatch = afterCmd.match(/^\[(.+)\]$/);
-        const caption    = bracketMatch ? bracketMatch[1].trim() : afterCmd;
+        const caption      = bracketMatch ? bracketMatch[1].trim() : afterCmd;
 
         if (!message.reference) return message.reply("❌ Reply to a message, image, or GIF with `b!makegif`.");
 
@@ -654,9 +646,9 @@ client.on("messageCreate", async (message) => {
                     });
                 });
             } else {
-                const msgText  = targetMsg.content || "[no text]";
-                const author   = targetMsg.author;
-                const username = targetMsg.member?.displayName || author.username;
+                const msgText   = targetMsg.content || "[no text]";
+                const author    = targetMsg.author;
+                const username  = targetMsg.member?.displayName || author.username;
                 const avatarUrl = author.displayAvatarURL({ extension: "png", size: 128 });
                 avatarPath = await downloadToTemp(avatarUrl, ".png");
                 await new Promise((resolve, reject) => {
@@ -691,23 +683,24 @@ client.on("messageCreate", async (message) => {
             .setTitle("♡ Owner Commands ♡")
             .setDescription("All commands below are **owner-only**.")
             .addFields(
-                { name: "b!help",                          value: "Shows this list.", inline: false },
-                { name: "b!status",                        value: "Bot status, ping, uptime.", inline: false },
-                { name: "b!restart",                       value: "Restarts the bot.", inline: false },
-                { name: "b!stop",                          value: "Stops the bot.", inline: false },
-                { name: "b!maintenance on/off",            value: "Toggles maintenance mode.", inline: false },
-                { name: "b!antinuke on/off",               value: "Toggles antinuke protection.", inline: false },
-                { name: "b!lock",                          value: "Locks the current channel.", inline: false },
-                { name: "b!unlock",                        value: "Unlocks the current channel.", inline: false },
-                { name: "b!changestatus",                  value: "Change bot status via react.", inline: false },
-                { name: "b!notifications",                 value: "Toggle DM notifications per owner.", inline: false },
-                { name: "b!testdms",                       value: "Sends a test DM to you.", inline: false },
-                { name: "b!crashtest",                     value: "Sends all 3 test DMs to owners.", inline: false },
-                { name: "b!savage on/off",                 value: "Toggles savage mode.", inline: false },
-                { name: "b!roast @member",                 value: "Roasts the mentioned member.", inline: false },
-                { name: "b!ban @member|userid [message]",  value: "Bans by mention or user ID.", inline: false },
-                { name: "b!makegif [caption]",             value: "Reply to image/GIF to convert it to a GIF.", inline: false },
-                { name: "b!reactionroles",                 value: "Posts the 3 reaction role embeds (gender, age, region) in the roles channel.", inline: false },
+                { name: "b!help",                         value: "Shows this list.", inline: false },
+                { name: "b!status",                       value: "Bot status, ping, uptime.", inline: false },
+                { name: "b!restart",                      value: "Restarts the bot.", inline: false },
+                { name: "b!stop",                         value: "Stops the bot.", inline: false },
+                { name: "b!maintenance on/off",           value: "Toggles maintenance mode.", inline: false },
+                { name: "b!antinuke on/off",              value: "Toggles antinuke protection.", inline: false },
+                { name: "b!lock",                         value: "Locks the current channel.", inline: false },
+                { name: "b!unlock",                       value: "Unlocks the current channel.", inline: false },
+                { name: "b!changestatus",                 value: "Change bot status via react.", inline: false },
+                { name: "b!notifications",                value: "Toggle DM notifications per owner.", inline: false },
+                { name: "b!testdms",                      value: "Sends a test DM to you.", inline: false },
+                { name: "b!crashtest",                    value: "Sends all 3 test DMs to owners.", inline: false },
+                { name: "b!savage on/off",                value: "Toggles savage mode.", inline: false },
+                { name: "b!roast @member",                value: "Roasts the mentioned member.", inline: false },
+                { name: "b!ban @member|userid [message]", value: "Bans by mention or user ID.", inline: false },
+                { name: "b!makegif [caption]",            value: "Reply to image/GIF to convert it to a GIF.", inline: false },
+                { name: "b!reactionroles",                value: "Posts the 3 reaction role embeds in the roles channel.", inline: false },
+                { name: "b!appeal",                       value: "Posts the appeal embed with a button so someone can open a ticket.", inline: false },
             )
             .setFooter({ text: "Only server owners can use these commands" })
             .setTimestamp();
@@ -720,12 +713,12 @@ client.on("messageCreate", async (message) => {
             .setColor("#ffc0cb")
             .setTitle("🤖 Bot Status")
             .addFields(
-                { name: "🟢 Status",      value: "Online",                                     inline: true  },
-                { name: "📶 Ping",        value: `${client.ws.ping}ms`,                        inline: true  },
-                { name: "⏱️ Uptime",      value: formatUptime(Date.now() - startTime),          inline: true  },
-                { name: "🕐 Started At",  value: `${new Date(startTime).toLocaleString("en-US", { timeZone: "UTC" })} UTC`, inline: false },
-                { name: "🔧 Maintenance", value: maintenanceMode ? "🔴 ON" : "🟢 OFF",          inline: true  },
-                { name: "🛡️ Antinuke",   value: antinukeEnabled ? "🟢 ON" : "🔴 OFF",          inline: true  },
+                { name: "🟢 Status",      value: "Online",                                                                      inline: true  },
+                { name: "📶 Ping",        value: `${client.ws.ping}ms`,                                                         inline: true  },
+                { name: "⏱️ Uptime",      value: formatUptime(Date.now() - startTime),                                          inline: true  },
+                { name: "🕐 Started At",  value: `${new Date(startTime).toLocaleString("en-US", { timeZone: "UTC" })} UTC`,     inline: false },
+                { name: "🔧 Maintenance", value: maintenanceMode ? "🔴 ON" : "🟢 OFF",                                          inline: true  },
+                { name: "🛡️ Antinuke",   value: antinukeEnabled ? "🟢 ON" : "🔴 OFF",                                          inline: true  },
             )
             .setFooter({ text: "Owner-only command" })
             .setTimestamp();
@@ -868,10 +861,7 @@ client.on("messageCreate", async (message) => {
         await message.reply("✅ All 3 test DMs sent to all owners!");
     }
 
-    /* =========================
-       b!reactionroles
-       Posts all 3 kawaii reaction role embeds in the roles channel.
-    ========================= */
+    /* --- b!reactionroles --- */
     if (content === "b!reactionroles") {
         try {
             const rrChannel = await client.channels.fetch(REACTION_ROLES_CHANNEL_ID);
@@ -881,6 +871,243 @@ client.on("messageCreate", async (message) => {
             console.error("b!reactionroles error:", err);
             await message.reply(`❌ Failed to post reaction roles: \`${err.message}\``);
         }
+    }
+
+    /* =========================
+       b!appeal
+       Posts the appeal embed with a button so she can open a ticket.
+    ========================= */
+    if (content === "b!appeal") {
+        const embed = new EmbedBuilder()
+            .setColor("#ffc0cb")
+            .setTitle("♡ uh oh.. someone's in trouble ♡")
+            .setDescription(
+                `*₊˚⊹ so you've been a little naughty huh ⊹˚₊*\n\n` +
+                `maybe u misbehaved,, maybe u said something u really shouldn't have,, maybe u just need to grovel a lil 🎀\n\n` +
+                `if u genuinely think u deserve forgiveness (u probably don't but okay) u can file ur little appeal below and plead ur case ♡\n\n` +
+                `be **honest**. be **sincere**. and maybe,, just maybe,, u'll be forgiven 🩷\n\n` +
+                `||or not. we'll see bestie.||`
+            )
+            .setFooter({ text: "♡ appeals are reviewed personally · forgiveness is not guaranteed ♡" })
+            .setTimestamp();
+
+        const button = new ButtonBuilder()
+            .setCustomId("open_appeal")
+            .setLabel("♡ file my appeal ♡")
+            .setStyle(ButtonStyle.Primary);
+
+        const row = new ActionRowBuilder().addComponents(button);
+        await message.channel.send({ embeds: [embed], components: [row] });
+    }
+});
+
+/* =========================
+   INTERACTION HANDLER
+   (appeal ticket system)
+========================= */
+client.on("interactionCreate", async (interaction) => {
+    if (!interaction.isButton()) return;
+
+    /* --- Open appeal ticket --- */
+    if (interaction.customId === "open_appeal") {
+        await interaction.deferReply({ ephemeral: true });
+
+        const guild  = interaction.guild;
+        const user   = interaction.user;
+        const safeName = user.username.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 20) || "user";
+
+        // Check for existing open ticket
+        const existing = guild.channels.cache.find(
+            (c) => c.topic === `appeal:${user.id}`
+        );
+        if (existing) {
+            return interaction.editReply({
+                content: `u already have an open appeal in ${existing} 🎀 go finish that one first!!`,
+            });
+        }
+
+        // Build permission overwrites
+        const overwrites = [
+            {
+                id: guild.roles.everyone.id,
+                deny: [PermissionsBitField.Flags.ViewChannel],
+            },
+            {
+                id: user.id,
+                allow: [
+                    PermissionsBitField.Flags.ViewChannel,
+                    PermissionsBitField.Flags.SendMessages,
+                    PermissionsBitField.Flags.ReadMessageHistory,
+                    PermissionsBitField.Flags.AttachFiles,
+                ],
+            },
+        ];
+
+        // Give owners access
+        for (const ownerId of OWNERS) {
+            overwrites.push({
+                id: ownerId,
+                allow: [
+                    PermissionsBitField.Flags.ViewChannel,
+                    PermissionsBitField.Flags.SendMessages,
+                    PermissionsBitField.Flags.ReadMessageHistory,
+                    PermissionsBitField.Flags.ManageMessages,
+                ],
+            });
+        }
+
+        // Create the private ticket channel
+        let ticketChannel;
+        try {
+            ticketChannel = await guild.channels.create({
+                name: `💌-appeal-${safeName}`,
+                type: ChannelType.GuildText,
+                parent: APPEAL_CATEGORY_ID || null,
+                topic: `appeal:${user.id}`,
+                permissionOverwrites: overwrites,
+            });
+        } catch (err) {
+            console.error("Failed to create appeal channel:", err);
+            return interaction.editReply({ content: `❌ couldn't create ur appeal channel: \`${err.message}\`` });
+        }
+
+        // Appeal form embed
+        const formEmbed = new EmbedBuilder()
+            .setColor("#ffc0cb")
+            .setTitle(`♡ ur appeal, ${user.displayName || user.username} ♡`)
+            .setDescription(
+                `*ₓ˚. ୭ okay so u messed up ˚₊‧꩜ .*\n\n` +
+                `this is ur one chance to explain urself and maybe earn some forgiveness 🩷\n` +
+                `answer every question honestly — skipping or lying = instant denial bestie 🎀\n\n` +
+                `**① what exactly did u do wrong?**\n` +
+                `*(be specific, no sugarcoating, no excuses yet)*\n\n` +
+                `**② why did u think that was okay at the time lol**\n` +
+                `*(walk me through ur reasoning, as embarrassing as it is)*\n\n` +
+                `**③ do u actually understand why it was wrong?**\n` +
+                `*(and i mean ACTUALLY understand, not just saying what i wanna hear)*\n\n` +
+                `**④ why do u deserve forgiveness rn**\n` +
+                `*(this better be good)*\n\n` +
+                `**⑤ what are u gonna do differently going forward**\n` +
+                `*(give me specifics, not "i'll be better" 🙄)*\n\n` +
+                `**⑥ rate how naughty u were on a scale of 1-10**\n` +
+                `*(be honest with ur rating and explain it)*\n\n` +
+                `**⑦ anything else u wanna say in ur defense?**\n` +
+                `*(this is ur absolute last chance, choose ur words carefully 🩷)*`
+            )
+            .setFooter({ text: "♡ type ur answers below · be honest or it won't work ♡" })
+            .setTimestamp();
+
+        // Close button (owners only)
+        const acceptBtn = new ButtonBuilder()
+            .setCustomId(`appeal_accept:${user.id}`)
+            .setLabel("✅ accept & close")
+            .setStyle(ButtonStyle.Success);
+
+        const denyBtn = new ButtonBuilder()
+            .setCustomId(`appeal_deny:${user.id}`)
+            .setLabel("❌ deny & close")
+            .setStyle(ButtonStyle.Danger);
+
+        const closeRow = new ActionRowBuilder().addComponents(acceptBtn, denyBtn);
+
+        await ticketChannel.send({
+            content: `<@${user.id}> welcome to ur appeal channel 🩷 take ur time and answer everything below ↓`,
+            embeds: [formEmbed],
+            components: [closeRow],
+        });
+
+        await interaction.editReply({
+            content: `ur appeal is open in ${ticketChannel} 🎀 go answer the questions honestly!! good luck bestie u'll need it`,
+        });
+
+        // Notify owners
+        await dmOwners(
+            `💌 **new appeal filed**\n` +
+            `<@${user.id}> (**${user.username}**) just opened an appeal!\n` +
+            `→ ${ticketChannel}`
+        );
+        return;
+    }
+
+    /* --- Accept appeal --- */
+    if (interaction.customId.startsWith("appeal_accept:")) {
+        if (!OWNERS.includes(interaction.user.id)) {
+            return interaction.reply({ content: "only owners can accept appeals 🎀", ephemeral: true });
+        }
+
+        const targetId = interaction.customId.split(":")[1];
+        await interaction.deferReply({ ephemeral: false });
+
+        // Send a nice closing message in the ticket channel
+        const closeEmbed = new EmbedBuilder()
+            .setColor("#77dd77")
+            .setTitle("♡ appeal accepted ♡")
+            .setDescription(
+                `*₊˚⊹ ur forgiven this time ⊹˚₊*\n\n` +
+                `<@${targetId}> ur appeal has been accepted 🩷\n` +
+                `don't make me regret it bestie,, this channel will close in **10 seconds** 🎀`
+            )
+            .setFooter({ text: "♡ forgiven · don't mess up again ♡" })
+            .setTimestamp();
+
+        await interaction.editReply({ embeds: [closeEmbed] });
+
+        // DM the user
+        try {
+            const targetUser = await client.users.fetch(targetId);
+            await targetUser.send(
+                `💌 **ur appeal was accepted!!**\n\n` +
+                `ur forgiven this time 🩷 don't make the same mistake again bestie or next time might not go so well 🎀`
+            );
+        } catch (_) {}
+
+        // Delete channel after delay
+        setTimeout(async () => {
+            try { await interaction.channel.delete(); } catch (err) {
+                console.error("Failed to delete appeal channel:", err);
+            }
+        }, 10000);
+        return;
+    }
+
+    /* --- Deny appeal --- */
+    if (interaction.customId.startsWith("appeal_deny:")) {
+        if (!OWNERS.includes(interaction.user.id)) {
+            return interaction.reply({ content: "only owners can deny appeals 🎀", ephemeral: true });
+        }
+
+        const targetId = interaction.customId.split(":")[1];
+        await interaction.deferReply({ ephemeral: false });
+
+        const closeEmbed = new EmbedBuilder()
+            .setColor("#ff6b6b")
+            .setTitle("♡ appeal denied ♡")
+            .setDescription(
+                `*₊˚⊹ yeah no. ⊹˚₊*\n\n` +
+                `<@${targetId}> ur appeal has been denied 🙂\n` +
+                `better luck next time i guess,, this channel closes in **10 seconds** 🎀`
+            )
+            .setFooter({ text: "♡ denied · try being less naughty next time ♡" })
+            .setTimestamp();
+
+        await interaction.editReply({ embeds: [closeEmbed] });
+
+        // DM the user
+        try {
+            const targetUser = await client.users.fetch(targetId);
+            await targetUser.send(
+                `💌 **ur appeal was denied.**\n\n` +
+                `yeah ur not forgiven rn 🙂 maybe reflect on what u did and try again later,, or just don't misbehave next time bestie 🎀`
+            );
+        } catch (_) {}
+
+        // Delete channel after delay
+        setTimeout(async () => {
+            try { await interaction.channel.delete(); } catch (err) {
+                console.error("Failed to delete appeal channel:", err);
+            }
+        }, 10000);
+        return;
     }
 });
 
@@ -895,7 +1122,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
         if (reaction.message.partial) await reaction.message.fetch();
 
         const msgId   = reaction.message.id;
-        const emojiId = reaction.emoji.id; // null for standard unicode emojis
+        const emojiId = reaction.emoji.id;
 
         /* --- Notification toggle menu --- */
         if (notifyMenuMessageId && msgId === notifyMenuMessageId && OWNERS.includes(user.id)) {
@@ -924,9 +1151,7 @@ client.on("messageReactionAdd", async (reaction, user) => {
             return;
         }
 
-        /* =========================
-           REACTION ROLES — ADD ROLE
-        ========================= */
+        /* --- Reaction Roles — add role --- */
         if (emojiId) {
             const guild  = reaction.message.guild;
             const member = await guild.members.fetch(user.id).catch(() => null);
@@ -1002,9 +1227,7 @@ client.on("messageReactionRemove", async (reaction, user) => {
         const msgId   = reaction.message.id;
         const emojiId = reaction.emoji.id;
 
-        /* =========================
-           REACTION ROLES — REMOVE ROLE
-        ========================= */
+        /* --- Reaction Roles — remove role --- */
         if (emojiId) {
             const guild  = reaction.message.guild;
             const member = await guild.members.fetch(user.id).catch(() => null);
